@@ -128,14 +128,31 @@ get_color_for_marker <- function(sc.data, sel.marker, sel.graph, color.scaling)
         ret[V(G)$type == 1] <- "#FF7580"
         return(ret)
     }
+    else if (grepl("Signif", sel.marker)) {
+        norm.factor <- 1
+        v <- get.vertex.attribute(G, sel.marker)
+        #         if(color.scaling  == "global")
+        #             norm.factor <- sc.data$dataset.statistics$max.marker.vals[[sel.marker]]
+        #         else if(color.scaling == "local")
+        #             norm.factor <- max(v)
+        
+        a = "#E7E7E7"
+        b = "#E71601"
+        c = "#2001E7"
+        f <- colorRamp(c(c, a, b), interpolate = "linear")
+        
+        v <- f(v / norm.factor) #colorRamp needs an argument in the range [0, 1]
+        v <- apply(v, 1, function(x) {sprintf("rgb(%s)", paste(round(x), collapse = ","))})
+        return(v)
+    }
     else
     {
         norm.factor <- NULL
         v <- get.vertex.attribute(G, sel.marker)
         if(color.scaling  == "global")
-        norm.factor <- sc.data$dataset.statistics$max.marker.vals[[sel.marker]]
+            norm.factor <- sc.data$dataset.statistics$max.marker.vals[[sel.marker]]
         else if(color.scaling == "local")
-        norm.factor <- max(v)
+            norm.factor <- max(v)
         
         a = "#E7E7E7"
         b = "#E71601"
