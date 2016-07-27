@@ -54,6 +54,8 @@ fluidPage(
             actionButton("graphui_toggle_landmark_labels", "Toggle landmark labels"), br(),
             actionButton("graphui_toggle_cluster_labels", "Toggle cluster labels"), br(),
             actionButton("graphui_export_selected_clusters", "Export selected clusters"), br(),
+            ##Added this new action button to export selected cluster(s) from all files in directory
+            actionButton("graphui_export_selected_clusters_all_files", "Export selected clusters from all files"), br(),
             p("For the export to work, the original RData files corresponding to the clustered files in use must be located in the working directory"),
             actionButton("graphui_plot_clusters", "Plot selected clusters"), checkboxInput("graphui_pool_cluster_data", "Pool cluster data", value = FALSE), br(),
             selectInput("graphui_plot_type", "Plot type:", choices = c("Density", "Boxplot", "Scatterplot"), width = "100%"),
@@ -534,6 +536,17 @@ shinyServer(function(input, output, session)
             isolate({
                 if(!is.null(input$graphui_selected_nodes) && length(input$graphui_selected_nodes) >= 1)
                     scaffold:::export_clusters(working.directory, input$graphui_selected_graph, input$graphui_selected_nodes)
+            })
+        }
+    })
+    
+    ##This observe statement exports selected cluster(s) from all files in directory
+    observe({
+        if(!is.null(input$graphui_export_selected_clusters_all_files) && input$graphui_export_selected_clusters_all_files > 0)
+        {
+            isolate({
+                if(!is.null(input$graphui_selected_nodes) && length(input$graphui_selected_nodes) >= 1)
+                    scaffold:::export_clusters_all_files(working.directory, input$graphui_selected_graph, input$graphui_selected_nodes)
             })
         }
     })

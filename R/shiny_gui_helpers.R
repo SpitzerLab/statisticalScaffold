@@ -81,6 +81,29 @@ export_clusters <- function(working.dir, sel.graph, sel.nodes)
     write.FCS(f, outname)
 }
 
+##Added this function to export a cluster(s) from all files in the directory
+export_clusters_all_files <- function(working.dir, sel.graph, sel.nodes)
+{
+    filesToIterate = as.matrix(list.files(working.dir, pattern = ".txt$"))
+    
+    exportFromFile = function(file) {
+        d <- gsub(".txt$", ".all_events.RData", file)
+        d <- file.path(working.dir, d)
+        d <- my_load(d)
+        clus <- as.numeric(gsub("c", "", sel.nodes))
+        d <- d[d$cellType %in% clus,]
+        if (length(as.matrix(d)[,1]) >= 1) {
+            f <- flowFrame(as.matrix(d))
+            p <- sprintf("scaffold_export_%s_", gsub(".fcs.clustered.txt", "", file))
+            outname <- tempfile(pattern = p, tmpdir = working.dir, fileext = ".fcs")
+            print(outname)
+            write.FCS(f, outname)  
+        }
+    }
+    
+    apply(filesToIterate, 1, exportFromFile)
+}
+
 get_graph <- function(sc.data, sel.graph, trans_to_apply, min.node.size, max.node.size, landmark.node.size)
 {
     G <- sc.data$graphs[[sel.graph]]
