@@ -77,6 +77,8 @@ render_clustering_ui <- function(working.directory, ...){renderUI({
             column(6,
                 selectInput("clusteringui_file_for_markers", "Load marker names from file", choices = c("", list.files(path = working.directory, pattern = "*.fcs$")), width = "100%"),
                 selectInput("clusteringui_markers", "Choose the markers for clustering", choices = c(""), multiple = T, width = "100%"),
+                ##Added this checkbox to enable clustering together 9/24/16
+                checkboxInput("clusteringui_cluster_together", "Cluster files together", value = FALSE),
                 numericInput("clusteringui_num_clusters", "Number of clusters", value = 200, min = 1, max = 2000),
                 numericInput("clusteringui_num_samples", "Number of samples", value = 50, min = 1), 
                 numericInput("clusteringui_asinh_cofactor", "asinh cofactor", value = 5), 
@@ -300,8 +302,9 @@ shinyServer(function(input, output, session)
         if(!is.null(input$clusteringui_start) && input$clusteringui_start != 0)
         isolate({
             col.names <- input$clusteringui_markers
+            ##Added new parameter for cluster together 9/24/16
             files.analyzed <- scaffold:::cluster_fcs_files_in_dir(working.directory, input$clusteringui_num_cores, col.names, 
-                                    input$clusteringui_num_clusters, input$clusteringui_num_samples, input$clusteringui_asinh_cofactor)
+                                    input$clusteringui_num_clusters, input$clusteringui_num_samples, input$clusteringui_asinh_cofactor, input$clusteringui_cluster_together)
             ret <- sprintf("Clustering completed with markers %s\n", paste(input$clusteringui_markers, collapse = " "))
             ret <- paste(ret, sprintf("Files analyzed:\n%s", paste(files.analyzed, collapse = "\n")), sep = "")
             updateSelectInput(session, "analysisui_reference", choices = c("", list.files(path = working.directory, pattern = "*.clustered.txt$")))

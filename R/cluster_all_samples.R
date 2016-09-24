@@ -166,13 +166,129 @@ process_file <- function(f, wd, col.names, num_clusters, num_samples, asinh.cofa
     #my_save(orig.data, paste(f, ".clustered.all_events.orig_data.RData", sep = ""))
 }
 
-cluster_fcs_files_in_dir <- function(wd, num.cores, col.names, num_clusters, num_samples, asinh.cofactor)
+
+##Testing cluster files together 9/24/16
+process_files_together <- function(f, wd, col.names, num_clusters, num_samples, asinh.cofactor, fileIDs, totalCellNumbers)
+{
+    setwd(wd)
+    
+    cluster_data <- function(tab, col.names, k, algorithm = "", ...)
+    {
+        m <- as.matrix(tab[, col.names])
+        #Ensure that m is a numeric matrix
+        class(m) = "numeric"
+        
+        if(algorithm == "clara")
+        {
+            print("Performing clara clustering")
+            groups <- clara(m, k, ...)$clustering
+        }
+        
+        else if(algorithm == "hierarchical")
+        {
+            print("Performing hierarchical clustering")
+            dend <- hclust(dist(m), ...)
+            groups <- cutree(dend, k)
+        }
+        
+        print("Clustering done")
+        tab <- cbind(tab, groups)
+        return(tab)
+    }
+    
+    tab = as.data.frame(c())
+    orig.data = c()
+    
+    addNextFile = function(fileName) {
+        fcs.file <- read.FCS(fileName)
+        orig.data <- exprs(fcs.file)
+        tabNextFile <- convert_fcs(fcs.file, asinh.cofactor)
+        colnames(tabNextFile) <- pData(parameters(fcs.file))$desc
+        
+        tabNextFile <- as.matrix(tabNextFile)
+        tabNextFile[tabNextFile < 0] <- 0
+        
+        fileID = rep.int(fileName, length(tabNextFile[,1]))
+        tabNextFile = as.data.frame(cbind(tabNextFile, fileID))
+        
+        tab = rbind(tab, tabNextFile)
+        return(tab)
+    }
+    
+    f = as.matrix(f)
+    tab = apply(f, 1, addNextFile)
+    tab = as.data.frame(do.call("rbind", tab))
+    
+    m <- cluster_data(tab, col.names, k = num_clusters, algorithm = "clara", sampsize = min(nrow(tab), 1000), samples = num_samples)
+    colnames(m) <- gsub("groups", "cellType", colnames(m))
+    orig.data <- cbind(orig.data, cellType = m[, "cellType"])
+    
+    #Compute the medians once on the whole data file. 
+    #This must be done because the coordinates control the mapping.
+    m2 = as.matrix(m[,which(colnames(m) != "fileID")])
+    class(m2) = "numeric"
+    m2 = as.data.frame(m2)
+    tab.medians <- ddply(m2, ~cellType, colwise(median))
+    
+    
+    
+    write_medians_and_files = function(fileID) {
+        workingFrame = m[which(m$fileID == fileID),]
+        populations = as.matrix(1:num_clusters)
+        
+        getPopSize = function(pop) {
+            return(nrow(workingFrame[which(workingFrame$cellType == pop),]))
+        }
+        
+        pop.size <- as.matrix(apply(populations, 1, getPopSize))
+        
+        
+        temp <- data.frame(tab.medians, sample = fileID, popsize = pop.size, check.names = F, stringsAsFactors = FALSE)
+        temp$popsize[is.na(temp$popsize)] = 0
+        
+        colnames(temp) <- gsub("^X", "", colnames(temp))
+        workingFrame = as.matrix(workingFrame[,which(colnames(workingFrame) != "fileID")])
+        class(workingFrame) = "numeric"
+        workingFrame <- data.frame(workingFrame, check.names = F)
+        orig.data <- data.frame(orig.data, stringsAsFactors = FALSE, check.names = FALSE)
+        colnames(orig.data) <- gsub("^X", "", colnames(orig.data))
+        colnames(workingFrame) <- gsub("^X", "", colnames(workingFrame))
+        
+        write.table(temp, paste(fileID, ".clustered.txt", sep = ""), row.names = F, sep = "\t", quote = F)
+        my_save(workingFrame, paste(fileID, ".clustered.all_events.RData", sep = ""))
+        #my_save(orig.data, paste(f, ".clustered.all_events.orig_data.RData", sep = ""))
+    }
+    
+    ##Write medians and clustered.txt files for each sample
+    f = as.matrix(f)
+    apply(f, 1, write_medians_and_files)
+    
+}
+
+
+# cluster_fcs_files_in_dir <- function(wd, num.cores, col.names, num_clusters, num_samples, asinh.cofactor)
+# {
+#     files.list <- list.files(path = wd, pattern = "*.fcs$")
+#     parallel::mclapply(files.list, mc.cores = num.cores, mc.preschedule = FALSE,
+#              process_file, wd = wd, col.names = col.names, num_clusters = num_clusters, num_samples = num_samples, asinh.cofactor = asinh.cofactor)
+#     return(files.list)
+# }
+
+##Testing here for cluster together 9/24/16
+cluster_fcs_files_in_dir <- function(wd, num.cores, col.names, num_clusters, num_samples, asinh.cofactor, cluster.together)
 {
     files.list <- list.files(path = wd, pattern = "*.fcs$")
-    parallel::mclapply(files.list, mc.cores = num.cores, mc.preschedule = FALSE,
-             process_file, wd = wd, col.names = col.names, num_clusters = num_clusters, num_samples = num_samples, asinh.cofactor = asinh.cofactor)
-    return(files.list)
+    
+    if (cluster.together) {
+        process_files_together(f = files.list, wd = wd, col.names = col.names, num_clusters = num_clusters, num_samples = num_samples, asinh.cofactor = asinh.cofactor, fileIDs = files.list, totalCellNumbers = totalCellNumbers)
+        return(files.list)
+    } else {
+        parallel::mclapply(files.list, mc.cores = num.cores, mc.preschedule = FALSE,
+                           process_file, wd = wd, col.names = col.names, num_clusters = num_clusters, num_samples = num_samples, asinh.cofactor = asinh.cofactor)
+        return(files.list)
+    }
 }
+
 
 cluster_fcs_files_groups <- function(wd, files.list, num.cores, col.names, num_clusters, num_samples, asinh.cofactor)
 {
