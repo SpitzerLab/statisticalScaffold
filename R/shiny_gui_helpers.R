@@ -166,6 +166,10 @@ get_color_for_marker <- function(sc.data, sel.marker, sel.graph, color.scaling)
         
         v <- f(v / norm.factor) #colorRamp needs an argument in the range [0, 1]
         v <- apply(v, 1, function(x) {sprintf("rgb(%s)", paste(round(x), collapse = ","))})
+        
+        ##Testing making the Landmark nodes black
+        v[V(G)$type == 1] <- "#000000"
+        
         return(v)
     }
     else
