@@ -10,6 +10,7 @@
 #' @import ggplot2
 #' @import igraph
 #' @import cluster
+#' @import samr
 #' @importFrom Rcpp sourceCpp
 #' @useDynLib scaffold 
 NULL

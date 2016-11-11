@@ -104,6 +104,79 @@ render_clustering_ui <- function(working.directory, ...){renderUI({
     )
 })}
 
+
+render_freqstats_ui <- function(working.directory, ...){renderUI({
+    fluidPage(
+        fluidRow(
+            column(6,
+                   checkboxInput("freqstatsui_total_cell_number_in_file", "Calculate frequencies as a percent of total cells in file", value = TRUE),
+                   selectInput("freqstatsui_file_for_total_cell_numbers", "File containing total cell numbers", choices = c("", list.files(path = working.directory, pattern = "*.csv$")), width = "100%"),
+                   textInput("freqstatsui_group1", "Identifier: Group 1", "Untreated", width = "100%"),
+                   textInput("freqstatsui_group2", "Identifier: Group 2", "Antibodies", width = "100%"),
+                   numericInput("freqstatsui_qValue_cutoff", "q-value cutoff for significance", value = 5.0),
+                   numericInput("freqstatsui_nperms", "number of permutations", value = 10000, min=100), 
+                   
+                   br(), br(), 
+                   actionButton("freqstatsui_start", "Run analysis"), br(), br(),
+                   actionButton("freqstatsui_remove_freqsignif_columns", "Remove frequency significance columns"), br(), br(),
+                   conditionalPanel(
+                       condition <- "$('html').hasClass('shiny-busy')", br(),
+                       p(strong("Processing data...please wait."))
+                   ),
+                   conditionalPanel(
+                       condition <- "!$('html').hasClass('shiny-busy') && input.freqstatsui_start > 0", br(),
+                       p(strong("Data analysis is complete!"))
+                   )
+            )
+        ),
+        fluidRow(
+            column(12,
+                   verbatimTextOutput("freqstatsui_dialog"), br(), br(), br(), br(), br(), br()
+            )
+        )
+        
+    )
+})}
+
+##This needs to be updated for expression stats
+render_exprstats_ui <- function(working.directory, ...){renderUI({
+    fluidPage(
+        fluidRow(
+            column(6,
+                   selectInput("exprstatsui_file_for_markers", "Load marker names from file", choices = c("", list.files(path = working.directory, pattern = "*.RData$")), width = "100%"),
+                   selectInput("exprstatsui_marker_to_analyze", "Choose the marker for analysis", choices = c(""), multiple = F, width = "100%"),
+                   br(),
+                   numericInput("exprstatsui_boolean_cutoff", "Boolean analysis: Expression cutoff for positivity", value = 50.0, min=1),
+                   numericInput("exprstatsui_arcsinh_cofactor", "Arcsinh cofactor", value = 5.0),
+                   br(),
+                   textInput("exprstatsui_group1", "Identifier: Group 1", "Untreated", width = "100%"),
+                   textInput("exprstatsui_group2", "Identifier: Group 2", "Antibodies", width = "100%"),
+                   br(),
+                   numericInput("exprstatsui_qValue_cutoff", "q-value cutoff for significance", value = 5.0),
+                   numericInput("exprstatsui_nperms", "Number of permutations", value = 10000, min=100), 
+                   
+                   br(), br(), 
+                   actionButton("exprstatsui_start", "Run analysis"), br(), br(),
+                   actionButton("exprstatsui_remove_exprsignif_columns", "Remove expression significance columns"), br(), br(),
+                   conditionalPanel(
+                       condition <- "$('html').hasClass('shiny-busy')", br(),
+                       p(strong("Processing data...please wait."))
+                   ),
+                   conditionalPanel(
+                       condition <- "!$('html').hasClass('shiny-busy') && input.exprstatsui_start > 0", br(),
+                       p(strong("Data analysis is complete!"))
+                   )
+            )
+        ),
+        fluidRow(
+            column(12,
+                   verbatimTextOutput("exprstatsui_dialog"), br(), br(), br(), br(), br(), br()
+            )
+        )
+        
+    )
+})}
+
 render_analysis_ui <- function(working.directory, ...){renderUI({
     fluidPage(
         fluidRow(
@@ -226,6 +299,8 @@ shinyServer(function(input, output, session)
     output$graphUI <- render_graph_ui(working.directory, input, output, session)
     output$analysisUI <- render_analysis_ui(working.directory, input, output, session)
     output$clusteringUI <- render_clustering_ui(working.directory, input, output, session)
+    output$freqstatsUI <- render_freqstats_ui(working.directory, input, output, session)
+    output$exprstatsUI <- render_exprstats_ui(working.directory, input, output, session)
     output$mappingUI <- render_mapping_ui(working.directory, input, output, session)
     
     #MappingUI functions
@@ -312,8 +387,58 @@ shinyServer(function(input, output, session)
         })
     })
 
+    #FreqStatsUI functions
+    
+    output$freqstatsui_dialog <- renderText({
+        if(!is.null(input$freqstatsui_start) && input$freqstatsui_start != 0)
+            isolate({
+                files.analyzed <- scaffold:::analyze_cluster_frequencies(working.directory, input$freqstatsui_group1, input$freqstatsui_group2, 
+                                                                         input$freqstatsui_qValue_cutoff, input$freqstatsui_nperms, 
+                                                                         input$freqstatsui_total_cell_number_in_file, input$freqstatsui_file_for_total_cell_numbers)
+                ret <- sprintf("Files analyzed:\n%s", paste(files.analyzed, collapse = "\n"))
+                return(ret)
+            })
+    })
+    
+    observe({
+        if(!is.null(input$freqstatsui_remove_freqsignif_columns) && input$freqstatsui_remove_freqsignif_columns != 0)
+        isolate({
+            ret <- scaffold:::remove_freqsignif_columns(working.directory)
+            return(ret)
+        })
+    })
 
-
+    
+    #ExprStatsUI functions
+    
+    observe({
+        if(!is.null(input$exprstatsui_file_for_markers) && grepl("*.RData$", input$exprstatsui_file_for_markers))
+        {
+            v <- scaffold:::get_rdata_col_names(working.directory, input$exprstatsui_file_for_markers)
+            updateSelectInput(session, "exprstatsui_marker_to_analyze", choices = v)
+        }
+    })
+    
+    output$exprstatsui_dialog <- renderText({
+        if(!is.null(input$exprstatsui_start) && input$exprstatsui_start != 0)
+            isolate({
+                files.analyzed <- scaffold:::analyze_cluster_expression(wd = working.directory, group1 = input$exprstatsui_group1, group2 = input$exprstatsui_group2, 
+                                                                        qValue_cutoff = input$exprstatsui_qValue_cutoff, nperms = input$exprstatsui_nperms,
+                                                                        feature = input$exprstatsui_marker_to_analyze, booleanThreshold = input$exprstatsui_boolean_cutoff, asinh.cofactor = input$exprstatsui_arcsinh_cofactor)
+                ret <- sprintf("Files analyzed:\n%s", paste(files.analyzed, collapse = "\n"))
+                return(ret)
+            })
+    })
+    
+    observe({
+        if(!is.null(input$exprstatsui_remove_exprsignif_columns) && input$exprstatsui_remove_exprsignif_columns != 0)
+            isolate({
+                ret <- scaffold:::remove_exprsignif_columns(working.directory)
+                return(ret)
+            })
+    })
+    
+    
     #AnalysisUI functions
     
     get_analysisui_mode <- reactive({
