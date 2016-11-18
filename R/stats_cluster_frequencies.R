@@ -133,7 +133,7 @@ getSignifMatrix = function(model, num_clusters, qValue_cutoff) {
     ##If there is only one significant cluster, SAM will return a vector. 
     ##If there are multiple, SAM will return a matrix.
     if (is.null(model$siggenes.table$genes.up)) {
-        pop_lower = c()
+        pop_higher = c()
     } else if (is.vector(model$siggenes.table$genes.up)) {
         pop_higher = as.data.frame(t(model$siggenes.table$genes.up), stringsAsFactors = FALSE)
     } else if (is.matrix(model$siggenes.table$genes.up)) {
