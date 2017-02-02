@@ -50,7 +50,7 @@ install_github("SpitzerLab/statisticalScaffold")
 This will install the SCAFFoLD R package together with all the required dependencies. If evertyhing was successful you should be able to start SCAFFoLD by typing the following commands
 
 ```
-library(statisticalScaffold)
+library(scaffold)
 scaffold.run()
 ```
 to stop SCAFFoLD simply hit the "ESC" key in your R session.
