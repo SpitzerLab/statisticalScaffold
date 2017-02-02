@@ -44,13 +44,13 @@ Once you have succesfully completed the steps above, start an R session and type
 
 ```
 library(devtools)
-install_github("nolanlab/scaffold")
+install_github("SpitzerLab/statisticalScaffold")
 ```
 
 This will install the SCAFFoLD R package together with all the required dependencies. If evertyhing was successful you should be able to start SCAFFoLD by typing the following commands
 
 ```
-library(scaffold)
+library(statisticalScaffold)
 scaffold.run()
 ```
 to stop SCAFFoLD simply hit the "ESC" key in your R session.
@@ -61,12 +61,22 @@ When you launch the GUI you will be prompted to select a file. You can select an
 
 ## Clustering
 
-Select the "Run clustering" tab from the navigation bar at the top. In the clustering tab select a representative FCS file and then select the markers that you want to use for the clustering. Hit start clustering and wait for the procedure to complete. For each FCS files two files will be created:
+Select the "Run clustering" tab from the navigation bar at the top. In the clustering tab select a representative FCS file and then select the markers that you want to use for the clustering. If you want to cluster all of your files together to run a statistical analysis across your samples, check the box to enable this feature. Hit start clustering and wait for the procedure to complete. For each FCS files two files will be created:
 
 1. your-fcs-file.clustered.txt: this file contains the marker medians for each cluster
 2. your-fcs-file.clustered.all_events.RData: this file is an RData object which contains all the events in the original FCS file but with an added column that specifies the cluster membership. **The data in this file is arcsinh transformed**
 
 The clustering is the only computationally intensive part of a SCAFFoLD analysis. Luckily this only needs to be run once as you can simply reuse these files to build multiple maps
+
+## Add Statistical Analyses
+
+There are currently two options for running statistical analyses in Scaffold, and both require that your samples were clustered together in the clustering step above. 
+
+The first is to compare cluster frequencies across your samples, to determine whether there are cell subsets that are significantly increased or decreased in one sample compared to another sample. Navigate to the "Add frequency statistics" tab. If you want to comput cell frequencies as a percent of the total cells in your FCS file, leave the box checked to "Calculate frequencies as a percent ot total cells in file." If you would like to calculate frequencies as a percent of some other population, such as total live cells, you must create a .csv file where the first column contains all of the FCS file names in your experiment and the 2nd column contains the total cell counts for each file, and this .csv file must be located in the same directory as your FCS files. In the dropdown menu called "File containing total cell numbers", select this .csv file. The "Identifier" text boxes should contain a unique string that distinguishes the samples that belong to class 1 and the samples that belonw to class 2. The q-value cutoff determines the threshold for significance, with 5% as the default. The number of permutations determines how many iterations SAM runs in determining significant features. 
+
+At the end of the analysis, two new files will be written into your working directory: one contains the cell frequencies for each cluster for each sample, the other contains a list of clusters and the significance value. A high significance value (close to 1) means that the cluster is more prevalent in sample class 2, and the number is 100 - q-value. A low significance value (close to 0) means that the cluster is less prevalent in sample class 2, and the number is equal to the q-value. A value of 0.5 means the cluster did not meet the signifiance therehold. This column in written into the clustered.txt files with the title "FreqSignif" such that the resulting Scaffold map can be colored by significance.
+
+The second option is to compare boolean protein expression for any given molecule between two sample types. Navigate to the "Add expression statistics" tab. Choose any sample to bring up a list of the markers that were measured in your experiment, and then select the marker you wish to comapre across your sample groups. Input the desried boolean threshold value that distinguished "positive" cells from "negative" cells as well as the asinh cofactor that you chose when running the clustering (this is generally 5 for CyTOF data). As for the frequency analysis, the "Identifier" text boxes should contain a unique string that distinguishes the samples that belong to class 1 and the samples that belonw to class 2. The q-value cutoff determines the threshold for significance, with 5% as the default. The number of permutations determines how many iterations SAM runs in determining significant features. The same .csv files are written as for the frequency analysis, but now they will be called *Marker*BooleanFreq and *Marker*BooleanSignif.
 
 ## Construct a SCAFFoLD map
 
