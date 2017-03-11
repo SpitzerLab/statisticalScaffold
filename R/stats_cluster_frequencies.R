@@ -181,7 +181,7 @@ analyze_cluster_frequencies = function(wd, group1, group2, qValue_cutoff, nperms
     if (total_cells_in_file == TRUE) {
         totalCellNumbers = "NA"
     } else {
-        totalCellNumbers = getTotalCellNumbers(file = paste(working.directory, total_cell_numbers_csv, sep = "/"))
+        totalCellNumbers = getTotalCellNumbers(file = paste(working.directory, total_cell_numbers_csv, sep = "/"), wd = wd)
     }
     
     freqMatrix = getFrequencies(wd = wd, totalCellNumbers = totalCellNumbers)
