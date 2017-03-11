@@ -211,7 +211,7 @@ remove_freqsignif_columns = function(wd) {
         newColNames = origColNames[-signifColumns]
         
         for (i in 1:length(files)) {
-            currFile = read.table(files[i], header=TRUE)
+            currFile = read.table(files[i], header=TRUE, sep="\t")
             newFile = currFile[,-signifColumns]
             colnames(newFile) = newColNames
             write.table(newFile, file = files[i], row.names = F, sep = "\t", quote = F)
