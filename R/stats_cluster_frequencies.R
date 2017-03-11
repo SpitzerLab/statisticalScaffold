@@ -4,12 +4,11 @@ options(stringsAsFactors = FALSE)
 getTotalCellNumbers = function(file, wd) {
     setwd(wd)
     table = read.csv(file, header=TRUE)
-    files = list.files(pattern = "*clustered.txt$")
+    files = list.files(pattern = "*.fcs$")
     indecies = rep.int(0, length(files))
     
     for (sample in 1:length(table[,1])) {
         sampleName = table[sample,1]
-        sampleName = strsplit(sampleName, ".fcs")
         if (!(all(grepl(sampleName, files)==FALSE))) {
             order = which(grepl(sampleName, files)==TRUE)
             indecies[order] = sample
