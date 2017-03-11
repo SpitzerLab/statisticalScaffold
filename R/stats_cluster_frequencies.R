@@ -53,7 +53,7 @@ getFrequencies = function(wd, totalCellNumbers) {
     clusteredFiles = as.matrix(list.files(pattern = "*.clustered.txt$"))
     
     extractPopSizes = function(f) {
-        newFile = read.table(f, header = TRUE, stringsAsFactors = FALSE)
+        newFile = read.table(f, header = TRUE, stringsAsFactors = FALSE, sep="\t")
         popSizes = as.matrix(newFile$popsize)
         return(popSizes)
     }
@@ -205,7 +205,7 @@ remove_freqsignif_columns = function(wd) {
     setwd(wd)
     
     files = list.files(pattern = "*clustered.txt$")
-    origColNames = as.vector(read.table(files[1], nrows = 1))
+    origColNames = as.vector(read.table(files[1], nrows = 1, sep="\t"))
     signifColumns = grep(pattern="frequencySignif", origColNames)
     
     if (length(signifColumns) > 0) {
@@ -225,7 +225,7 @@ remove_freqsignif_columns = function(wd) {
 ##Functions for Boolean experession analysis
 get_num_clusters = function(wd){
     files = list.files(pattern = "*clustered.txt$")
-    testFile = read.table(files[1], header=TRUE)
+    testFile = read.table(files[1], header=TRUE, sep="\t")
     return(length(testFile[,1]))
 }
 
@@ -333,7 +333,7 @@ remove_exprsignif_columns = function(wd) {
     setwd(wd)
     
     files = list.files(pattern = "*clustered.txt$")
-    origColNames = as.vector(read.table(files[1], nrows = 1))
+    origColNames = as.vector(read.table(files[1], nrows = 1, sep="\t"))
     signifColumns = grep(pattern="Signif", origColNames)
     
     if (any(grepl(pattern="frequencySignif", origColNames))) {
@@ -345,7 +345,7 @@ remove_exprsignif_columns = function(wd) {
         newColNames = origColNames[-signifColumns]
         
         for (i in 1:length(files)) {
-            currFile = read.table(files[i], header=TRUE)
+            currFile = read.table(files[i], header=TRUE, sep="\t")
             newFile = currFile[,-signifColumns]
             colnames(newFile) = newColNames
             write.table(newFile, file = files[i], row.names = F, sep = "\t", quote = F)
