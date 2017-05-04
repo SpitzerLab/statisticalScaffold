@@ -242,11 +242,32 @@ process_files_together <- function(f, wd, col.names, num_clusters, num_samples, 
         
         pop.size <- as.matrix(apply(populations, 1, getPopSize))
         
+        workingFrameMedians = c()
         
-        temp <- data.frame(tab.medians, sample = fileID, popsize = pop.size, check.names = F, stringsAsFactors = FALSE)
+        workingFrame.mat = as.matrix(workingFrame[,which(colnames(workingFrame) != "fileID")])
+        class(workingFrame.mat) = "numeric"
+        workingFrameDF = as.data.frame(workingFrame.mat)
+        working.frame.medians <- ddply(workingFrameDF, ~cellType, colwise(median))
+        working.frame.medians.complete = as.data.frame(mat.or.vec(num_clusters, length(colnames(working.frame.medians))))
+        colnames(working.frame.medians.complete) = colnames(working.frame.medians)
+        for (i in 1:length(unique(working.frame.medians$cellType))) {
+          cellType = unique(working.frame.medians$cellType)[i]
+          working.frame.medians.complete[cellType,] = working.frame.medians[which(working.frame.medians$cellType == cellType),]
+        }
+        
+        
+        notClusteredParameters = colnames(tab.medians)[-which(colnames(tab.medians) %in% col.names)]
+        
+        file.tab.medians = tab.medians
+
+        for (parameter in 1:length(notClusteredParameters)) {
+          file.tab.medians[,which(colnames(file.tab.medians) == notClusteredParameters[parameter])] = as.vector(working.frame.medians.complete[,which(colnames(working.frame.medians.complete) == notClusteredParameters[parameter])])
+        }
+
+        temp <- data.frame(file.tab.medians, sample = fileID, popsize = pop.size, check.names = F, stringsAsFactors = FALSE)
         temp$popsize[is.na(temp$popsize)] = 0
-        
         colnames(temp) <- gsub("^X", "", colnames(temp))
+        
         workingFrame = as.matrix(workingFrame[,which(colnames(workingFrame) != "fileID")])
         class(workingFrame) = "numeric"
         workingFrame <- data.frame(workingFrame, check.names = F)
