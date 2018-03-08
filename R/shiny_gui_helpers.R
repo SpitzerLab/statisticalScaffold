@@ -67,6 +67,19 @@ get_summary_table <- function(sc.data, sel.graph, sel.nodes)
 }
 
 
+cleanPlotMarkers <- function(allMarkers,forMap = FALSE) {
+  remove = c("cellType","Event_length","Y89Di","Ba138Di","Ba138","Time","DNA1","DNA2", "Cisplatin","e131Di","e131","Os189",
+             "BC1","BC2","BC3","BC4","BC5","BC6","beadDist","sample","popsize","Xe131Di")
+  cleanMarkers = allMarkers[-which(allMarkers %in% remove)]
+    cleanMarkers = as.character(cleanMarkers)
+  if(forMap == FALSE) {
+    if(any(grep("Signif", cleanMarkers))) {cleanMarkers =  cleanMarkers[-grep("Signif", cleanMarkers)]}
+    if(any(grep("FoldChange", cleanMarkers))) {cleanMarkers =  cleanMarkers[-grep("FoldChange", cleanMarkers)]}
+  }
+  return(cleanMarkers)
+}
+
+
 export_clusters <- function(working.dir, sel.graph, sel.nodes)
 {
     d <- gsub(".txt$", ".all_events.RData", sel.graph)
@@ -102,6 +115,25 @@ export_clusters_all_files <- function(working.dir, sel.graph, sel.nodes)
     }
     
     apply(filesToIterate, 1, exportFromFile)
+}
+
+##Added this function to run set cluster vectors for Histogram Intersection Distance
+set_HID_vectors <- function(vector, sel.nodes, working.directory, nameDirectory)
+{
+  if(!(nameDirectory %in% list.dirs(full.names = FALSE))) {dir.create(paste(working.directory,nameDirectory, sep = "/"))}
+  
+  if (all(substr(sel.nodes,1,1) == "c")) {
+  sel.nodes = as.numeric(gsub("c", "", sel.nodes))
+  }
+  if(vector == "vector1") {
+    setVector1 = sel.nodes
+    write.csv(setVector1, file = paste(working.directory,nameDirectory, "Vector1.csv", sep="/"),
+              row.names=FALSE)
+  }else if (vector == "vector2") {
+    setVector2 = sel.nodes
+    write.csv(setVector2, file = paste(working.directory,nameDirectory, "Vector2.csv", sep="/"),
+              row.names=FALSE)
+  }
 }
 
 get_graph <- function(sc.data, sel.graph, trans_to_apply, min.node.size, max.node.size, landmark.node.size)
@@ -144,35 +176,35 @@ get_graph <- function(sc.data, sel.graph, trans_to_apply, min.node.size, max.nod
 
 get_color_for_marker <- function(sc.data, sel.marker, sel.graph, color.scaling)
 {
-    G <- sc.data$graphs[[sel.graph]]
-    if(sel.marker == "Default")
-    {
-        ret <- rep("#4F93DE", vcount(G))
-        ret[V(G)$type == 1] <- "#FF7580"
-        return(ret)
-    }
-    else if (grepl("Signif", sel.marker)) {
-        norm.factor <- 1
+    G <- sc.data$graphs[[sel.graph]]  
+    
+    ret = rep("#4F93DE", vcount(G))
+    ret[V(G)$type == 1] <- "#FF7580"
+    v = ret
+    
+    # if(sel.marker == "Default")
+    # {
+    #     ret <- rep("#4F93DE", vcount(G))
+    #     ret[V(G)$type == 1] <- "#FF7580"
+    #     return(ret)
+    # }
+    if (grepl("Signif", sel.marker) || grepl("FoldChange", sel.marker)) {
+      
         v <- get.vertex.attribute(G, sel.marker)
-        #         if(color.scaling  == "global")
-        #             norm.factor <- sc.data$dataset.statistics$max.marker.vals[[sel.marker]]
-        #         else if(color.scaling == "local")
-        #             norm.factor <- max(v)
-        
+      
         a = "#E7E7E7"
         b = "#E71601"
         c = "#2001E7"
         f <- colorRamp(c(c, a, b), interpolate = "linear")
         
-        v <- f(v / norm.factor) #colorRamp needs an argument in the range [0, 1]
+        v <- f(v) #colorRamp needs an argument in the range [0, 1] 
         v <- apply(v, 1, function(x) {sprintf("rgb(%s)", paste(round(x), collapse = ","))})
         
-        ##Testing making the Landmark nodes black
-        v[V(G)$type == 1] <- "#000000"
-        
+        ##Landmark nodes black
+        v[V(G)$type == 1] <- "#000000"  
         return(v)
-    }
-    else
+    } 
+    else if (sel.marker != "Default")
     {
         norm.factor <- NULL
         v <- get.vertex.attribute(G, sel.marker)
@@ -188,6 +220,10 @@ get_color_for_marker <- function(sc.data, sel.marker, sel.graph, color.scaling)
         v <- f(v / norm.factor) #colorRamp needs an argument in the range [0, 1]
         v <- apply(v, 1, function(x) {sprintf("rgb(%s)", paste(round(x), collapse = ","))})
         return(v)
+    }
+    else
+    {
+      return(ret)
     }
 }
 

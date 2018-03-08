@@ -6,10 +6,11 @@
 #' @import cluster
 #' @import shiny
 #' @import plyr
+#' @import dplyr
 #' @import reshape
 #' @import ggplot2
+#' @import scales
 #' @import igraph
-#' @import cluster
 #' @import samr
 #' @importFrom Rcpp sourceCpp
 #' @useDynLib scaffold 
