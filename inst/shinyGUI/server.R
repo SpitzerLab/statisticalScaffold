@@ -359,8 +359,9 @@ shinyServer(function(input, output, session)
         file_name <- paste(working.directory, input$mappingui_ref_scaffold_file, sep = "/")
         sc.data <- scaffold:::my_load(file_name)
         
-        updateSelectInput(session, "mappingui_ref_scaffold_file_markers", choices = scaffold:::cleanPlotMarkers(sc.data$scaffold.col.names))
-      }
+        updateSelectInput(session, "mappingui_ref_scaffold_file_markers", choices = sc.data$scaffold.col.names)
+        #changed 04/29 because Scaffold wasn't loading any reference markers
+        }
     })
     
     observe({
