@@ -37,14 +37,14 @@ generateHistIntersect <- function (nameDirectory, working.directory, stat = TRUE
   dat1 = bigMatrix[which(bigMatrix$cellType %in% vector1),]
   dat2 = bigMatrix[which(bigMatrix$cellType %in% vector2),]
 
-  remove_dat1 = which(!(colnames(dat1)[1:55] %in% proteins))
+  remove_dat1 = which(!(colnames(dat1)[1:(ncol(dat1)-2)] %in% proteins))
     if(length(remove_dat1) > 0) {dat1 = dat1[,-remove_dat1]}
-  remove_dat2 = which(!(colnames(dat2)[1:55] %in% proteins))
+  remove_dat2 = which(!(colnames(dat2)[1:(ncol(dat2)-2)] %in% proteins))
     if(length(remove_dat2) > 0) {dat2 = dat2[,-remove_dat2]}
-    if("beadDist" %in% colnames(dat1)) {
-      dat1 = dat1[,-which(colnames(dat1) == "beadDist")]
-      dat2 = dat2[,-which(colnames(dat2) == "beadDist")]
-    }
+    #if("beadDist" %in% colnames(dat1)) {
+    #  dat1 = dat1[,-which(colnames(dat1) == "beadDist")]
+    #  dat2 = dat2[,-which(colnames(dat2) == "beadDist")]
+    #}
   
   # Order & Untransform data  
   dat1 = dat1[,c(ncol(dat1),(ncol(dat1)-1),1:(ncol(dat1)-2))]
