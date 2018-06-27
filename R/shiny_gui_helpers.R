@@ -68,7 +68,7 @@ get_summary_table <- function(sc.data, sel.graph, sel.nodes)
 
 
 cleanPlotMarkers <- function(allMarkers,forMap = FALSE) {
-  remove = c("cellType","Event_length","Y89Di","Ba138Di","Ba138","Time","DNA1","DNA2", "Cisplatin","e131Di","e131","Os189",
+  remove = c("cellType","Event_length","length","Y89Di","Ba138Di","Ba138","Time","DNA","DNA.1","DNA1","DNA2", "Cisplatin","e131Di","e131","Os189",
              "BC1","BC2","BC3","BC4","BC5","BC6","beadDist","sample","popsize","Xe131Di")
   cleanMarkers = allMarkers[-which(allMarkers %in% remove)]
     cleanMarkers = as.character(cleanMarkers)
@@ -259,7 +259,7 @@ get_fcs_col_names <- function(working.directory, f.name)
 {
     fcs.file <- read.FCS(paste(working.directory, f.name, sep = "/"))
     ret <- as.vector(pData(parameters(fcs.file))$desc)
-    
+
     if(any(is.na(ret)))
     {
         w <- is.na(ret)
