@@ -8,6 +8,7 @@ License: GPL-2
 LinkingTo: Rcpp
 Imports:
     Rcpp,
+    stringr,
     cluster,
     flowCore,
     ggplot2,

@@ -114,7 +114,21 @@ render_freqstats_ui <- function(working.directory, ...){renderUI({
                    textInput("freqstatsui_group1", "Identifier: Group 1", "Untreated", width = "100%"),
                    textInput("freqstatsui_group2", "Identifier: Group 2", "Antibodies", width = "100%"),
                    numericInput("freqstatsui_qValue_cutoff", "q-value cutoff for significance", value = 5.0),
-                   numericInput("freqstatsui_nperms", "number of permutations", value = 10000, min=100), 
+                   numericInput("freqstatsui_nperms", "number of permutations", value = 10000, min=100),
+                   selectInput("freqstatsui_statTest", 
+                               "Problem type", 
+                               choices = c("Quantitative",
+                                           "Two class unpaired",
+                                           "Surival",
+                                           "Multiclass",
+                                           "One class",
+                                           "Two class paired",
+                                           "Two class unpaired timecourse",
+                                           "One class time course",
+                                           "Two class.paired timecourse",
+                                           "Pattern discovery"),
+                               selected = "Two class paired"),
+                   textInput("freqstatsui_sampleID", "sampleID"),
                    
                    br(), br(), 
                    actionButton("freqstatsui_start", "Run analysis"), br(), br(),
@@ -153,7 +167,21 @@ render_exprstats_ui <- function(working.directory, ...){renderUI({
                    textInput("exprstatsui_group2", "Identifier: Group 2", "Antibodies", width = "100%"),
                    br(),
                    numericInput("exprstatsui_qValue_cutoff", "q-value cutoff for significance", value = 5.0),
-                   numericInput("exprstatsui_nperms", "Number of permutations", value = 10000, min=100), 
+                   numericInput("exprstatsui_nperms", "Number of permutations", value = 10000, min=100),
+                   selectInput("exprstatsui_statTest", 
+                               "Problem type", 
+                               choices = c("Quantitative",
+                                           "Two class unpaired",
+                                           "Surival",
+                                           "Multiclass",
+                                           "One class",
+                                           "Two class paired",
+                                           "Two class unpaired timecourse",
+                                           "One class time course",
+                                           "Two class.paired timecourse",
+                                           "Pattern discovery"),
+                               selected = "Two class paired"),
+                   textInput("exprstatsui_sampleID", "sampleID"),
                    
                    br(), br(), 
                    actionButton("exprstatsui_start", "Run analysis"), br(), br(),
@@ -394,7 +422,9 @@ shinyServer(function(input, output, session)
             isolate({
                 files.analyzed <- scaffold:::analyze_cluster_frequencies(working.directory, input$freqstatsui_group1, input$freqstatsui_group2, 
                                                                          input$freqstatsui_qValue_cutoff, input$freqstatsui_nperms, 
-                                                                         input$freqstatsui_total_cell_number_in_file, input$freqstatsui_file_for_total_cell_numbers)
+                                                                         input$freqstatsui_total_cell_number_in_file, 
+                                                                         input$freqstatsui_file_for_total_cell_numbers,
+                                                                         statTest = input$freqstatsui_statTest, sampleID = input$freqstatsui_sampleID)
                 ret <- sprintf("Files analyzed:\n%s", paste(files.analyzed, collapse = "\n"))
                 return(ret)
             })
@@ -424,7 +454,8 @@ shinyServer(function(input, output, session)
             isolate({
                 files.analyzed <- scaffold:::analyze_cluster_expression(wd = working.directory, group1 = input$exprstatsui_group1, group2 = input$exprstatsui_group2, 
                                                                         qValue_cutoff = input$exprstatsui_qValue_cutoff, nperms = input$exprstatsui_nperms,
-                                                                        feature = input$exprstatsui_marker_to_analyze, booleanThreshold = input$exprstatsui_boolean_cutoff, asinh.cofactor = input$exprstatsui_arcsinh_cofactor)
+                                                                        feature = input$exprstatsui_marker_to_analyze, booleanThreshold = input$exprstatsui_boolean_cutoff, 
+                                                                        asinh.cofactor = input$exprstatsui_arcsinh_cofactor, statTest = input$exprstatsui_statTest, sampleID = input$exprstatsui_sampleID)
                 ret <- sprintf("Files analyzed:\n%s", paste(files.analyzed, collapse = "\n"))
                 return(ret)
             })
