@@ -81,13 +81,8 @@ extractColnames = function(wd) {
 ##This funciton reads in all files in the working directory, extracts the frequency for
 ##each cluster and stores this in a matrix. Then this matrix is passed into SAM along 
 ##with the sampleID codes to build the model of different features by sample type.
-run_SAM_analysis = function(freqMatrix, sampleID, nperms) {
-    if (length(unique(sampleID)) == 2) {
-        family = "Two class unpaired"
-    } else {
-        family = "Multiclass"
-    }
-    
+run_SAM_analysis = function(freqMatrix, sampleID, nperms, statTest) {
+  family = statTest
     fullFreqMatrix = as.data.frame(freqMatrix)
     
     row_without_values = apply(fullFreqMatrix, 1, function(row) all(row==0))
@@ -99,6 +94,7 @@ run_SAM_analysis = function(freqMatrix, sampleID, nperms) {
         freqMatrix = fullFreqMatrix
     }
     
+    freqMatrix = as.matrix(freqMatrix)
     samResults = SAM(x=freqMatrix,y=sampleID,resp.type=family,
                      genenames=rownames(freqMatrix), geneid=rownames(freqMatrix), nperms=nperms)
     return(samResults)
@@ -175,7 +171,7 @@ append_freq_signif = function(wd, colNames, signif_matrix) {
 }
 
 ##Run the cluster frequency significance analysis 
-analyze_cluster_frequencies = function(wd, group1, group2, qValue_cutoff, nperms, total_cells_in_file, total_cell_numbers_csv) {
+analyze_cluster_frequencies = function(wd, group1, group2, qValue_cutoff, nperms, total_cells_in_file, total_cell_numbers_csv, statTest, sampleID) {
     totalCellNumbers = c()
     
     if (total_cells_in_file == TRUE) {
@@ -186,9 +182,10 @@ analyze_cluster_frequencies = function(wd, group1, group2, qValue_cutoff, nperms
     
     freqMatrix = getFrequencies(wd = wd, totalCellNumbers = totalCellNumbers)
     
-    sampleID = getSampleIDs(group1, group2, wd)
+    sampleID = as.numeric(stringr::str_split(sampleID, ",")[[1]])
+    # sampleID = getSampleIDs(group1, group2, wd)
     
-    model = run_SAM_analysis(freqMatrix, sampleID = sampleID, nperms = nperms)
+    model = run_SAM_analysis(freqMatrix, sampleID = sampleID, nperms = nperms, statTest = statTest)
     
     signif_matrix = getSignifMatrix(model, num_clusters = length(freqMatrix[,1]), qValue_cutoff = qValue_cutoff)
     write.csv(signif_matrix, paste(wd, "freqSignif.csv", sep="/"), row.names = FALSE)
@@ -307,7 +304,7 @@ append_expr_signif = function(wd, colNames, signif_matrix, feature) {
 }
 
 
-analyze_cluster_expression = function(wd, group1, group2, qValue_cutoff, nperms, feature, booleanThreshold, asinh.cofactor) {
+analyze_cluster_expression = function(wd, group1, group2, qValue_cutoff, nperms, feature, booleanThreshold, asinh.cofactor, statTest, sampleID) {
     setwd(wd)
     num_clusters = get_num_clusters(wd)
     booleanMatrix = buildBooleanMatrix(wd, feature = feature, 
@@ -315,8 +312,9 @@ analyze_cluster_expression = function(wd, group1, group2, qValue_cutoff, nperms,
                                        asinh.cofactor = asinh.cofactor, 
                                        num_clusters = num_clusters)
     write.csv(booleanMatrix, paste(wd, paste(feature, "BooleanFreq.csv", sep=""), sep="/"), row.names = TRUE)
-    sampleID = getSampleIDs(group1, group2, wd)
-    model = run_SAM_analysis(booleanMatrix, sampleID = sampleID, nperms = nperms)
+    # sampleID = getSampleIDs(group1, group2, wd)
+    sampleID = as.numeric(stringr::str_split(sampleID, ",")[[1]])
+    model = run_SAM_analysis(booleanMatrix, sampleID = sampleID, nperms = nperms, statTest = statTest)
     signif_matrix = getSignifMatrix(model, num_clusters = num_clusters, qValue_cutoff = qValue_cutoff)
     write.csv(signif_matrix, paste(wd, paste(feature, "BooleanSignif.csv", sep=""), sep="/"), row.names = FALSE)
     
