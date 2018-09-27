@@ -53,6 +53,7 @@ fluidPage(
             actionButton("graphui_reset_graph_position", "Reset graph position"), br(),
             actionButton("graphui_toggle_landmark_labels", "Toggle landmark labels"), br(),
             actionButton("graphui_toggle_cluster_labels", "Toggle cluster labels"), br(),
+            actionButton("graphui_export_cluster_info", "Export cluster info"), br(),
             actionButton("graphui_export_selected_clusters", "Export selected clusters"), br(),
             ##Added this new action button to export selected cluster(s) from all files in directory
             actionButton("graphui_export_selected_clusters_all_files", "Export selected clusters from all files"), br(),
@@ -708,6 +709,20 @@ shinyServer(function(input, output, session)
             session$sendCustomMessage(type = "reset_colors", "none")
         }
     })
+    
+    
+    ##Added 09.26.18 - exports the highest ranking node associated with each cluster
+    observe({
+        if(!is.null(input$graphui_export_cluster_info) && input$graphui_export_cluster_info > 0)
+        {
+            sc.data <- scaffold_data()
+            isolate({
+                if(!is.null(sc.data))
+                    scaffold:::get_cluster_label(scaffold_data(), working.directory)  
+            })
+        }
+    })
+    
     
     observe({
         if(!is.null(input$graphui_export_selected_clusters) && input$graphui_export_selected_clusters > 0)

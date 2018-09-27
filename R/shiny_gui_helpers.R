@@ -255,6 +255,18 @@ get_number_of_cells_per_landmark <- function(sc.data, sel.graph)
     return(dd)
 }
 
+
+#added 09/26/18 to export cluster labels defined as highest ranking node
+get_cluster_label <- function(sc.data, working.directory) { 
+    G <- sc.data$graphs[[1]]
+    land <- V(G)[V(G)$type == 1]$Label
+    ee <- get.edgelist(G)
+    ee <- ee[V(G)[V(G)$type == 2]$highest_scoring_edge,]
+    dd <- data.frame(Cluster = c(1:200), Landmark = ee[,1])
+    write.csv(dd, file = paste(working.directory, "ClusterInfo.csv", sep="/"),row.names=FALSE) 
+}
+
+
 get_fcs_col_names <- function(working.directory, f.name)
 {
     fcs.file <- read.FCS(paste(working.directory, f.name, sep = "/"))
