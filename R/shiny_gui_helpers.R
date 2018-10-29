@@ -256,13 +256,35 @@ get_number_of_cells_per_landmark <- function(sc.data, sel.graph)
 }
 
 
-#added 09/26/18 to export cluster labels defined as highest ranking node
-get_cluster_label <- function(sc.data, working.directory) { 
-    G <- sc.data$graphs[[1]]
-    ee <- get.edgelist(G)
-    ee <- ee[V(G)[V(G)$type == 2]$highest_scoring_edge,]
-    dd <- data.frame(Cluster = c(1:nrow(ee)), Landmark = ee[,1])
-    write.csv(dd, file = paste(working.directory, "ClusterInfo.csv", sep="/"),row.names=FALSE) 
+#added 10/29/18 to export all cluster to landmark information
+get_cluster_label <- function(sc.data, working.directory) 
+{ 
+  G <- sc.data$graphs[[1]]
+  
+  #exports key landmark population per cluster
+  ee <- get.edgelist(G)
+  ee1 <- ee[V(G)[V(G)$type == 2]$highest_scoring_edge,]
+  dd <- data.frame(Cluster = c(1:nrow(ee1)), Landmark = ee1[,1])
+  write.csv(dd, file = paste(working.directory, "HighestRanking_ClusterInfo.csv", sep="/"),row.names=FALSE) 
+  
+  # expots every landmark node connection per cluster, with weight of connection
+  g.temp <- delete.edges(G, E(G)[which(E(G)$edge_type == "inter_cluster")])
+  allClusterInfo <- data.frame(Cluster = c(1:nrow(ee1)))
+  namevector <- unique(get.edgelist(g.temp)[,1])
+  allClusterInfo[ , namevector] <- NA
+  node = 1
+  for(i in 1:vcount(g.temp))
+  {
+    if(V(g.temp)$type[i] == 2)
+    {
+      sel.edges <- incident(g.temp, i)
+      node_name <- ee[which(ee[,2] == i),1]
+      node_weight <- E(g.temp)[sel.edges]$weight
+      allClusterInfo[node,which(colnames(allClusterInfo) %in% node_name)] = node_weight
+      node = node + 1
+    }
+  }
+  write.csv(allClusterInfo, file = paste(working.directory, "ALL_ClusterInfo.csv", sep="/"),row.names=FALSE) 
 }
 
 
