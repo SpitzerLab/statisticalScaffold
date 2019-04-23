@@ -99,7 +99,7 @@ run_SAM_analysis = function(freqMatrix, sampleID, nperms) {
         freqMatrix = fullFreqMatrix
     }
     
-    freqMatrix = as.numeric(as.matrix(freqMatrix))                           
+    freqMatrix = data.matrix(freqMatrix)                           
                                
     samResults = SAM(x=freqMatrix,y=sampleID,resp.type=family,
                      genenames=rownames(freqMatrix), geneid=rownames(freqMatrix), nperms=nperms)
