@@ -36,6 +36,7 @@ Open an R session and type the following commands
 ```
 source("http://bioconductor.org/biocLite.R")
 biocLite("flowCore")
+BiocManager::install("impute")
 ```
 
 ## Install SCAFFoLD
