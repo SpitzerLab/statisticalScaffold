@@ -18,7 +18,6 @@ Imports:
     reshape,
     shiny,
     grDevices,
-    parallel,
-    samr
+    parallel
 LazyData: true
 RoxygenNote: 6.0.1

@@ -284,6 +284,7 @@ runStats = function(dat1, dat2, runName) {
   if (length(row_without_values_indecies) > 0) {statMatrix = fullMatrix[-row_without_values_indecies,]
   } else {statMatrix = fullMatrix}
   
+  statMatrix = as.matrix(statMatrix)
   samResults = SAM(x=statMatrix,y=sampleID,resp.type="Two class unpaired",
                    genenames=rownames(statMatrix), geneid=rownames(statMatrix), nperms=10000)
   

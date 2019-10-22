@@ -119,15 +119,19 @@ render_freqstats_ui <- function(working.directory, ...){renderUI({
             column(6,
                    checkboxInput("freqstatsui_total_cell_number_in_file", "Calculate frequencies as a percent of total cells in file", value = TRUE),
                    selectInput("freqstatsui_file_for_total_cell_numbers", "File containing total cell numbers", choices = c("", list.files(path = working.directory, pattern = "*.csv$")), width = "100%"),
+                   actionButton("freqstatsui_printTemplate", "Write template file"), 
+                   br(), br(),
+                   
                    textInput("freqstatsui_group1", "Identifier: Group 1", "Untreated", width = "100%"),
                    textInput("freqstatsui_group2", "Identifier: Group 2", "Antibodies", width = "100%"),
                    numericInput("freqstatsui_qValue_cutoff", "q-value cutoff for significance", value = 5.0),
-                   numericInput("freqstatsui_nperms", "number of permutations", value = 10000, min=100),
+                   numericInput("freqstatsui_nperms", "number of permutations", value = 10000, min=100), br(),
                    checkboxInput("freqstatsui_foldChange", "Include Fold Change", value = FALSE),
+                   numericInput("graph_FC_scale", "Graph Log2 FC Scale", value = 2),
                    
                    br(), br(), 
                    actionButton("freqstatsui_start", "Run analysis"), br(), br(),
-                   actionButton("freqstatsui_remove_freqsignif_columns", "Remove frequency significance columns"), br(), br(),
+                   actionButton("freqstatsui_remove_freqsignif_columns", "Remove frequency columns"), br(), br(),
                    conditionalPanel(
                        condition <- "$('html').hasClass('shiny-busy')", br(),
                        p(strong("Processing data...please wait."))
@@ -162,12 +166,13 @@ render_exprstats_ui <- function(working.directory, ...){renderUI({
                    textInput("exprstatsui_group2", "Identifier: Group 2", "Antibodies", width = "100%"),
                    br(),
                    numericInput("exprstatsui_qValue_cutoff", "q-value cutoff for significance", value = 5.0),
-                   numericInput("exprstatsui_nperms", "Number of permutations", value = 10000, min=100), 
+                   numericInput("exprstatsui_nperms", "Number of permutations", value = 10000, min=100), br(),
                    checkboxInput("exprstatsui_foldChange", "Include Fold Change", value = FALSE),
+                   numericInput("exp_graph_FC_scale", "Graph Log2 FC Scale", value = 2),
                    
                    br(), br(), 
                    actionButton("exprstatsui_start", "Run analysis"), br(), br(),
-                   actionButton("exprstatsui_remove_exprsignif_columns", "Remove expression significance columns"), br(), br(),
+                   actionButton("exprstatsui_remove_exprsignif_columns", "Remove expression columns"), br(), br(),
                    conditionalPanel(
                        condition <- "$('html').hasClass('shiny-busy')", br(),
                        p(strong("Processing data...please wait."))
@@ -186,6 +191,42 @@ render_exprstats_ui <- function(working.directory, ...){renderUI({
         
     )
 })}
+
+# Added 20190.10.10 to plot features correlated with cluster abundances
+render_correlation_ui <- function(working.directory, ...){renderUI({
+  fluidPage(
+    fluidRow(
+      column(6,
+             selectInput("coorelationUI_feature_to_corr", "File containing feature information", choices = c("", list.files(path = working.directory, pattern = "*_Correlation.csv$")), width = "100%"),
+             actionButton("coorelationUI_printTemplate", "Write template file"), br(), br(),
+
+             br(),
+             selectInput("coorelationUI_corr_test", "Choose the type of correlation", choices = c("spearman","pearson", "kendall"), multiple = F, width = "100%"),
+             numericInput("coorelationUI_cutoff", "q-value cutoff for significance", value = 5.0),
+             checkboxInput("coorelationUI_SignificantCorr", "Include plot without statistics", value = FALSE),
+             
+             br(), br(), 
+             actionButton("coorelationUI_start", "Run analysis"), br(), br(),
+             actionButton("coorelationUI_remove_corr_columns", "Remove correlation columns"), br(), br(),
+             conditionalPanel(
+               condition <- "$('html').hasClass('shiny-busy')", br(),
+               p(strong("Processing data...please wait."))
+             ),
+             conditionalPanel(
+               condition <- "!$('html').hasClass('shiny-busy') && input.exprstatsui_start > 0", br(),
+               p(strong("Data analysis is complete!"))
+             )
+      )
+    ),
+    fluidRow(
+      column(12,
+             verbatimTextOutput("coorelationUI_dialog"), br(), br(), br(), br(), br(), br()
+      )
+    )
+    
+  )
+})}
+
 
 render_analysis_ui <- function(working.directory, ...){renderUI({
     fluidPage(
@@ -311,6 +352,7 @@ shinyServer(function(input, output, session)
     output$clusteringUI <- render_clustering_ui(working.directory, input, output, session)
     output$freqstatsUI <- render_freqstats_ui(working.directory, input, output, session)
     output$exprstatsUI <- render_exprstats_ui(working.directory, input, output, session)
+    output$coorelationUI <- render_correlation_ui(working.directory, input, output, session)
     output$mappingUI <- render_mapping_ui(working.directory, input, output, session)
     
     #MappingUI functions
@@ -406,7 +448,7 @@ shinyServer(function(input, output, session)
                 files.analyzed <- scaffold:::analyze_cluster_frequencies(working.directory, input$freqstatsui_group1, input$freqstatsui_group2, 
                                                                          input$freqstatsui_qValue_cutoff, input$freqstatsui_nperms, 
                                                                          input$freqstatsui_total_cell_number_in_file, input$freqstatsui_file_for_total_cell_numbers,
-                                                                         input$freqstatsui_foldChange)
+                                                                         input$freqstatsui_foldChange, input$graph_FC_scale)
                 ret <- sprintf("Files analyzed:\n%s", paste(files.analyzed, collapse = "\n"))
                 return(ret)
             })
@@ -437,7 +479,7 @@ shinyServer(function(input, output, session)
                 files.analyzed <- scaffold:::analyze_cluster_expression(wd = working.directory, group1 = input$exprstatsui_group1, group2 = input$exprstatsui_group2, 
                                                                         qValue_cutoff = input$exprstatsui_qValue_cutoff, nperms = input$exprstatsui_nperms,
                                                                         feature = input$exprstatsui_marker_to_analyze, booleanThreshold = input$exprstatsui_boolean_cutoff, asinh.cofactor = input$exprstatsui_arcsinh_cofactor,
-                                                                        input$exprstatsui_foldChange)
+                                                                        input$exprstatsui_foldChange, input$exp_graph_FC_scale)
                 ret <- sprintf("Files analyzed:\n%s", paste(files.analyzed, collapse = "\n"))
                 return(ret)
             })
@@ -449,6 +491,45 @@ shinyServer(function(input, output, session)
                 ret <- scaffold:::remove_exprsignif_columns(working.directory)
                 return(ret)
             })
+    })
+    
+    
+    #CoorelationUI functions  10.10.2019
+   
+    output$coorelationUI_dialog <- renderText({
+      
+      if(!is.null(input$coorelationUI_start) && input$coorelationUI_start != 0)
+        
+        isolate({
+          files.analyzed <- scaffold:::analyze_cluster_correlation(wd = working.directory, corFeature = input$coorelationUI_feature_to_corr, 
+                                                                   corTest = input$coorelationUI_corr_test,
+                                                                   corPlotTypes = input$coorelationUI_SignificantCorr,
+                                                                   qVal_cutoff = input$coorelationUI_cutoff)
+          ret <- sprintf("Files analyzed:\n%s", paste(files.analyzed, collapse = "\n"))
+          return(ret)
+        })
+    })
+    
+    observe({
+      if(!is.null(input$coorelationUI_remove_corr_columns) && input$coorelationUI_remove_corr_columns != 0)
+        isolate({
+          ret <- scaffold:::remove_correlation_columns(working.directory)
+          return(ret)
+        })
+    })
+    
+    observe({
+      if(!is.null(input$coorelationUI_printTemplate) && input$coorelationUI_printTemplate != 0)
+        isolate({
+          scaffold:::print_Feature_Template(working.directory)
+        })
+    })
+    
+    observe({
+      if(!is.null(input$freqstatsui_printTemplate) && input$freqstatsui_printTemplate != 0)
+        isolate({
+          scaffold:::print_Feature_Template(working.directory)
+        })
     })
     
     
@@ -512,6 +593,7 @@ shinyServer(function(input, output, session)
                             files.analyzed <- scaffold:::run_analysis_gated(working.directory, input$analysisui_reference,
                                 input$analysisui_markers, inter.cluster.connections = input$analysisui_inter_cluster_connections, col.names.inter_cluster = input$analysisui_markers_inter_cluster,
                                 asinh.cofactor = input$analysisui_asinh_cofactor, ew_influence = ew_influence, inter_cluster.weight_factor = input$analysisui_inter_cluster_weight, overlap_method = "repel")
+                            
                         }
                         else if(input$analysisui_mode == "Existing")
                         {
@@ -561,8 +643,8 @@ shinyServer(function(input, output, session)
               sel.marker <- input$graphui_marker
             else
               sel.marker <- "Default"
-            updateSelectInput(session, "graphui_marker", choices = c("Default", scaffold:::cleanPlotMarkers(attrs,forMap = TRUE)), selected = sel.marker)
-            updateSelectInput(session, "graphui_markers_to_plot", choices = scaffold:::cleanPlotMarkers(attrs), selected = scaffold:::cleanPlotMarkers(attrs))
+            updateSelectInput(session, "graphui_marker", choices = c("Default", attrs), selected = sel.marker)
+            updateSelectInput(session, "graphui_markers_to_plot", choices = attrs, selected = attrs) #reverted back for compatibility 2018.01.11
           })
           return(scaffold:::get_graph(sc.data, input$graphui_selected_graph, input$graphui_cur_transform, input$graphui_min_node_size,
                                       input$graphui_max_node_size, input$graphui_landmark_node_size))
@@ -577,8 +659,8 @@ shinyServer(function(input, output, session)
         {
             isolate({
                 if(!is.null(input$graphui_marker))
-                    ret$color <- scaffold:::get_color_for_marker(scaffold_data(), input$graphui_marker, input$graphui_selected_graph, input$graphui_color_scaling)
-            })
+                  ret$color <- scaffold:::get_color_for_marker(scaffold_data(), input$graphui_marker, input$graphui_selected_graph, input$graphui_color_scaling)
+                })
         }
         return(ret)
     })

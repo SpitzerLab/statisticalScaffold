@@ -4,7 +4,7 @@ options(stringsAsFactors = FALSE)
 getTotalCellNumbers = function(file, wd) {
   setwd(wd)
   table = read.csv(file, header=TRUE)
-  files = list.files(pattern = "*.fcs$")
+  files = list.files(pattern = "*.clustered.txt$")
   indecies = rep.int(0, length(files))
   
   for (sample in 1:length(table[,1])) {
@@ -62,7 +62,7 @@ getFrequencies = function(wd, totalCellNumbers) {
   if (totalCellNumbers[1] == "NA") {
     freqMatrix = t(t(popSizeMatrix) / colSums(popSizeMatrix))
   } else {
-    freqMatrix = t(t(popSizeMatrix)/totalCellNumbers)
+    freqMatrix = t(t(popSizeMatrix) / totalCellNumbers)
   }
   
   rownames(freqMatrix) = 1:length(freqMatrix[,1])
@@ -77,6 +77,7 @@ getFrequencies = function(wd, totalCellNumbers) {
 extractColnames = function(wd) {
   return(read.table(list.files(pattern = "*clustered.txt$")[1], nrows = 1, sep = "\t"))
 }
+
 
 ##This funciton reads in all files in the working directory, extracts the frequency for
 ##each cluster and stores this in a matrix. Then this matrix is passed into SAM along 
@@ -99,11 +100,24 @@ run_SAM_analysis = function(freqMatrix, sampleID, nperms) {
     freqMatrix = fullFreqMatrix
   }
   
+  freqMatrix = as.matrix(freqMatrix) ## Fix for new version of R
   samResults = SAM(x=freqMatrix,y=sampleID,resp.type=family,
                    genenames=rownames(freqMatrix), geneid=rownames(freqMatrix), nperms=nperms)
   return(samResults)
 }
 
+##This function manually calculates the fold chnage between groups for plotting
+##regardless of significance cutoff             FIND ME
+calculate_FoldChange = function(freqMatrix, group1, group2) {
+  result_FC <- numeric()
+  
+  group1_mean <- rowMeans(freqMatrix[,which(grepl(group1, colnames(freqMatrix)))])
+  group2_mean <- rowMeans(freqMatrix[,which(grepl(group2, colnames(freqMatrix)))])
+  result_FC <- group2_mean/group1_mean
+  result_FC <- round(log2(result_FC), digits = 2)
+
+  return(result_FC)
+}
 
 
 ##This funciton checks each cluster to see if it is in the list of 
@@ -169,7 +183,7 @@ getSignifMatrix = function(model, num_clusters, qValue_cutoff, include_foldC) {
   
   
   cluster_signif = mat.or.vec(num_clusters, 3)
-  colnames(cluster_signif) = c("cellType", "Significance", "RAWFoldChange")
+  colnames(cluster_signif) = c("cellType", "Significance", "SAMFoldChange")
   cluster_signif[,1] = 1:num_clusters
   
   clusters = as.matrix(1:num_clusters)
@@ -183,25 +197,43 @@ getSignifMatrix = function(model, num_clusters, qValue_cutoff, include_foldC) {
 }
 
 ##This function appends the q-value matrix to each "clustered.txt" file in the wd.
-append_freq_signif = function(wd, colNames, signif_matrix, include_foldC) {
+append_freq_signif = function(wd, colNames, signif_matrix, include_foldC = FALSE, set_max_Val = 2) {
   setwd(wd)
   files = as.matrix(list.files(pattern = "*clustered.txt$"))
   
   bind_signif_by_file = function(newFile) {
     currFile = read.table(newFile, header = TRUE, sep = "\t")
     colnames(currFile) = as.matrix(colNames)
-    appendedFile = cbind(currFile, signif_matrix[,-1])
-  
+    
     if(include_foldC) {
+      appendedFile = cbind(currFile, signif_matrix[,-1])
       colnames(appendedFile)[grep("Significance", colnames(appendedFile))] = "frequencySignif"
-      colnames(appendedFile)[grep("RAWFoldChange", colnames(appendedFile))] = "frequencyFoldChange"
-        FC_dat = as.numeric(appendedFile[,ncol(appendedFile)]) / 2
-        if(any(FC_dat>1)) {FC_dat[which(FC_dat>1)] = 0.99999} ##represents greatest increase, 1 used for black landmarks
-        if(any(FC_dat==1)) {FC_dat[which(FC_dat==1)] = 0.99999}
-        appendedFile[,ncol(appendedFile)] = FC_dat
+      colnames(appendedFile)[grep("SAMFoldChange", colnames(appendedFile))] = "frequencyFoldChange"
+      colnames(appendedFile)[grep("All_Log2_FoldChange", colnames(appendedFile))] = "frequency_ALLFoldChange"
+      
+      #Log2 Normalize SAM output
+      appendedFile$frequencyFoldChange = log2(as.numeric(appendedFile$frequencyFoldChange))
+      
+      # Normalize Fold Changes
+        set_min_Val = -set_max_Val
+        FCs <- c("frequencyFoldChange","frequency_ALLFoldChange")
+        for (i in 1:2){
+          FC_dat <- appendedFile[,which(grepl(FCs[i], colnames(appendedFile)))]
+          
+          if(any(FC_dat > set_max_Val)) {FC_dat[which(FC_dat > set_max_Val)] = set_max_Val}
+          if(any(FC_dat < set_min_Val)) {FC_dat[which(FC_dat < set_min_Val)] = set_min_Val}
+          normalized = (FC_dat-set_min_Val)/(set_max_Val-set_min_Val)
+        
+          if(any(normalized>1)) {normalized[which(normalized>1)] = 0.99999} ##represents greatest increase, 1 used for black landmarks
+          if(any(normalized==1)) {normalized[which(normalized==1)] = 0.99999}
+        
+          appendedFile[,which(grepl(FCs[i], colnames(appendedFile)))] = normalized
+        }
     } else{
+      appendedFile = cbind(currFile, signif_matrix[,grep("Significance", colnames(signif_matrix))])
       colnames(appendedFile)[ncol(appendedFile)] = "frequencySignif"
     }
+    
     write.table(appendedFile, file = newFile, row.names = F, sep = "\t", quote = F)
   }
   
@@ -210,7 +242,7 @@ append_freq_signif = function(wd, colNames, signif_matrix, include_foldC) {
 }
 
 ##Run the cluster frequency significance analysis 
-analyze_cluster_frequencies = function(wd, group1, group2, qValue_cutoff, nperms, total_cells_in_file, total_cell_numbers_csv, include_foldC) {
+analyze_cluster_frequencies = function(wd, group1, group2, qValue_cutoff, nperms, total_cells_in_file, total_cell_numbers_csv, include_foldC,set_max_Val) {
   totalCellNumbers = c()
   
   if (total_cells_in_file == TRUE) {
@@ -224,36 +256,22 @@ analyze_cluster_frequencies = function(wd, group1, group2, qValue_cutoff, nperms
   sampleID = getSampleIDs(group1, group2, wd)
   
   model = run_SAM_analysis(freqMatrix, sampleID = sampleID, nperms = nperms)
+  #FIND ME
+  getFC <- calculate_FoldChange(freqMatrix, group1, group2)
   
   signif_matrix = getSignifMatrix(model, num_clusters = length(freqMatrix[,1]), qValue_cutoff = qValue_cutoff, include_foldC)
+    colNames = extractColnames(wd)
+  
+  signif_matrix = cbind(signif_matrix, getFC)
+    colnames(signif_matrix)[ncol(signif_matrix)] = "All_Log2_FoldChange"
+  # FIND ME : need to edit this bit to include the new column
+  append_freq_signif(wd, colNames = colNames, signif_matrix = signif_matrix, include_foldC = include_foldC, set_max_Val = set_max_Val)
+  
   write.csv(signif_matrix, paste(wd, "freqSignif.csv", sep="/"), row.names = FALSE)
-  colNames = extractColnames(wd)
-  append_freq_signif(wd, colNames = colNames, signif_matrix = signif_matrix, include_foldC)
+  
   return(list.files(pattern = "*.clustered.txt$"))
 }
 
-##Remove the frequency significance column
-# remove_freqsignif_columns = function(wd) {
-#   options(stringsAsFactors = F)
-#   
-#   setwd(wd)
-#   
-#   files = list.files(pattern = "*clustered.txt$")
-#   origColNames = as.vector(read.table(files[1], nrows = 1, sep="\t"))
-#   signifColumns = c(grep(pattern="frequencySignif", origColNames), grep(pattern="frequencyFoldChange", origColNames))
-#   
-#   if (length(signifColumns) > 0) {
-#     newColNames = origColNames[-signifColumns]
-#     
-#     for (i in 1:length(files)) {
-#       currFile = read.table(files[i], header=TRUE, sep="\t")
-#       newFile = currFile[,-signifColumns]
-#       colnames(newFile) = newColNames
-#       write.table(newFile, file = files[i], row.names = F, sep = "\t", quote = F)
-#     }
-#   } 
-#   return("Frequency significance columns removed.")
-# }
 
 remove_freqsignif_columns = function(wd) {
   options(stringsAsFactors = F)
@@ -263,7 +281,8 @@ remove_freqsignif_columns = function(wd) {
   files = list.files(pattern = "*clustered.txt$")
   for (i in 1:length(files)) {
     origColNames = as.vector(read.table(files[i], nrows = 1, sep="\t"))
-    signifColumns = c(grep(pattern="frequencySignif", origColNames), grep(pattern="frequencyFoldChange", origColNames))
+    signifColumns = c(grep(pattern="frequency", origColNames))
+    
     if (length(signifColumns) > 0) {
       newColNames = origColNames[-signifColumns]
       currFile = read.table(files[i], header=TRUE, sep="\t")
@@ -274,6 +293,15 @@ remove_freqsignif_columns = function(wd) {
   } 
   return("Frequency significance columns removed.")
 }
+
+
+print_Feature_Template = function(wd){
+  setwd(wd)
+  files = list.files(pattern = "*.clustered.txt$")
+  temp_mat = data.frame(fileName = files, feature_value = rep(NA, length = length(files)))
+  write.csv(temp_mat, paste(wd,"Feature_Template.csv", sep="/"), row.names = FALSE)
+}
+
 
 
 ##Functions for Boolean experession analysis
@@ -288,7 +316,7 @@ get_rdata_col_names <- function(working.directory, f.name)
   rdata.file <- readRDS(paste(working.directory, f.name, sep = "/"))
   
   ret <- as.vector(colnames(rdata.file))
-  
+
   if(any(is.na(ret)))
   {
     w <- is.na(ret)
@@ -320,6 +348,8 @@ buildBooleanMatrix = function(wd, feature, booleanThreshold, asinh.cofactor, num
   rownames(fullBooleanMatrix) = 1:num_clusters
   colnames(fullBooleanMatrix) = dataFiles
   
+  #write.csv(fullBooleanMatrix, paste(wd, paste(feature, "BooleanFreq_FULL.csv", sep=""), sep="/"), row.names = TRUE)
+  
   row_without_values = apply(fullBooleanMatrix, 1, function(row) all(is.na(row)))
   row_without_values_indecies = which(row_without_values == TRUE)
   
@@ -346,25 +376,44 @@ buildBooleanMatrix = function(wd, feature, booleanThreshold, asinh.cofactor, num
   return(booleanMatrix)
 }
 
-append_expr_signif = function(wd, colNames, signif_matrix, feature, include_foldC) {
+append_expr_signif = function(wd, colNames, signif_matrix, feature, include_foldC = FALSE, set_max_Val = 2) {
   setwd(wd)
   files = as.matrix(list.files(pattern = "*clustered.txt$"))
   
   bind_signif_by_file = function(newFile) {
     currFile = read.table(newFile, header = TRUE, sep = "\t")
     colnames(currFile) = as.matrix(colNames)
-    appendedFile = cbind(currFile, signif_matrix[,-1])
     
     if(include_foldC) {
+      appendedFile = cbind(currFile, signif_matrix[,-1])
       colnames(appendedFile)[grep("Significance", colnames(appendedFile))] = paste(feature, "BooleanSignif", sep="")
-      colnames(appendedFile)[grep("RAWFoldChange", colnames(appendedFile))] = paste(feature, "FoldChange", sep="")
-        FC_dat = as.numeric(appendedFile[,ncol(appendedFile)]) / 2
-        if(any(FC_dat>1)) {FC_dat[which(FC_dat>1)] = 0.99999} ##represents greatest increase, 1 used for black landmarks
-        if(any(FC_dat==1)) {FC_dat[which(FC_dat==1)] = 0.99999}
-        appendedFile[,ncol(appendedFile)] = FC_dat
+      colnames(appendedFile)[grep("SAMFoldChange", colnames(appendedFile))] = paste(feature, "BooleanFoldChange", sep="")
+      colnames(appendedFile)[grep("All_Log2_FoldChange", colnames(appendedFile))] = paste(feature, "Boolean_ALLFoldChange", sep="")
+        
+      #Log2 Normalize SAM output
+      SAM_Index <- which(grepl(paste(feature, "FoldChange", sep=""), colnames(appendedFile)))
+        appendedFile[,SAM_Index] = log2(as.numeric(appendedFile[,SAM_Index]))
+      
+      # Normalize Fold Changes
+      set_min_Val = -set_max_Val
+      FCs <- c(paste(feature, "FoldChange", sep=""),paste(feature, "Boolean_ALLFoldChange", sep=""))
+      for (i in 1:2){
+        FC_dat <- appendedFile[,which(grepl(FCs[i], colnames(appendedFile)))]
+        
+        if(any(FC_dat > set_max_Val)) {FC_dat[which(FC_dat > set_max_Val)] = set_max_Val}
+        if(any(FC_dat < set_min_Val)) {FC_dat[which(FC_dat < set_min_Val)] = set_min_Val}
+        normalized = (FC_dat-set_min_Val)/(set_max_Val-set_min_Val)
+        
+        if(any(normalized>1)) {normalized[which(normalized>1)] = 0.99999} ##represents greatest increase, 1 used for black landmarks
+        if(any(normalized==1)) {normalized[which(normalized==1)] = 0.99999}
+        
+        appendedFile[,which(grepl(FCs[i], colnames(appendedFile)))] = normalized
+      }
     } else{
+      appendedFile = cbind(currFile, signif_matrix[,grep("Significance", colnames(signif_matrix))])
       colnames(appendedFile)[ncol(appendedFile)] = paste(feature, "BooleanSignif", sep="")
     }
+    
     write.table(appendedFile, file = newFile, row.names = F, sep = "\t", quote = F)
   }
   
@@ -372,7 +421,8 @@ append_expr_signif = function(wd, colNames, signif_matrix, feature, include_fold
 }
 
 
-analyze_cluster_expression = function(wd, group1, group2, qValue_cutoff, nperms, feature, booleanThreshold, asinh.cofactor, include_foldC) {
+analyze_cluster_expression = function(wd, group1, group2, qValue_cutoff, nperms, feature, booleanThreshold, 
+                                      asinh.cofactor, include_foldC, set_max_Val) {
   setwd(wd)
   num_clusters = get_num_clusters(wd)
   booleanMatrix = buildBooleanMatrix(wd, feature = feature, 
@@ -382,40 +432,20 @@ analyze_cluster_expression = function(wd, group1, group2, qValue_cutoff, nperms,
   write.csv(booleanMatrix, paste(wd, paste(feature, "BooleanFreq.csv", sep=""), sep="/"), row.names = TRUE)
   sampleID = getSampleIDs(group1, group2, wd)
   model = run_SAM_analysis(booleanMatrix, sampleID = sampleID, nperms = nperms)
+  
+  getFC_express <- calculate_FoldChange(booleanMatrix, group1, group2)
+  
   signif_matrix = getSignifMatrix(model, num_clusters = num_clusters, qValue_cutoff = qValue_cutoff, include_foldC)
+    signif_matrix = cbind(signif_matrix, getFC_express)
+    colnames(signif_matrix)[ncol(signif_matrix)] = "All_Log2_FoldChange"
+  
   write.csv(signif_matrix, paste(wd, paste(feature, "BooleanSignif.csv", sep=""), sep="/"), row.names = FALSE)
   colNames = extractColnames(wd)
-  append_expr_signif(wd, colNames = colNames, signif_matrix = signif_matrix, feature = feature, include_foldC)
+  append_expr_signif(wd, colNames = colNames, signif_matrix = signif_matrix, feature = feature, 
+                     include_foldC = include_foldC, set_max_Val = set_max_Val)
   return(list.files(pattern = "*.clustered.txt$"))
 }
 
-##Remove the expression significance columns
-# remove_exprsignif_columns = function(wd) {
-#   options(stringsAsFactors = F)
-#   
-#   setwd(wd)
-#   
-#   files = list.files(pattern = "*clustered.txt$")
-#   origColNames = as.vector(read.table(files[1], nrows = 1, sep="\t"))
-#   signifColumns = c(grep(pattern="Signif", origColNames), grep(pattern="FoldChange", origColNames))
-#   
-#   if (any(grepl(pattern="frequency", origColNames))) {
-#     signifColumns = signifColumns[-which(signifColumns == grep(pattern="frequency", origColNames))]
-#   }
-#   
-#   
-#   if (length(signifColumns) > 0) {
-#     newColNames = origColNames[-signifColumns]
-#     
-#     for (i in 1:length(files)) {
-#       currFile = read.table(files[i], header=TRUE, sep="\t")
-#       newFile = currFile[,-signifColumns]
-#       colnames(newFile) = newColNames
-#       write.table(newFile, file = files[i], row.names = F, sep = "\t", quote = F)
-#     }
-#   } 
-#   return("Expression significance columns removed.")
-# }
 
 remove_exprsignif_columns = function(wd) {
   options(stringsAsFactors = F)
@@ -425,10 +455,8 @@ remove_exprsignif_columns = function(wd) {
   files = list.files(pattern = "*clustered.txt$")
   for (i in 1:length(files)) {
     origColNames = as.vector(read.table(files[i], nrows = 1, sep="\t"))
-    signifColumns = c(grep(pattern="Signif", origColNames), grep(pattern="FoldChange", origColNames))
-    if (any(grepl(pattern="frequency", origColNames))) {
-      signifColumns = signifColumns[-which(signifColumns == grep(pattern="frequency", origColNames))]
-    }
+    signifColumns = c(grep(pattern="Boolean", origColNames))
+    
     if (length(signifColumns) > 0) {
       newColNames = origColNames[-signifColumns]
       currFile = read.table(files[i], header=TRUE, sep="\t")
@@ -439,3 +467,91 @@ remove_exprsignif_columns = function(wd) {
   }
   return("Expression significance columns removed.")
 }
+
+
+########
+## Added 20190.10.10 to plot features correlated with cluster abundances
+
+analyze_cluster_correlation = function(wd, corFeature, corTest, corPlotTypes, qVal_cutoff) {
+  setwd(wd)
+  
+  num_clusters = get_num_clusters(wd)
+  corr_matrix = data.frame(cellType = 1:num_clusters, Correlation = rep(NA, length = num_clusters), pVal = rep(NA, length = num_clusters))
+  
+  freqMatrix = getFrequencies(wd = wd, totalCellNumbers = "NA")
+    freqMatrix = freqMatrix[,order(colnames(freqMatrix))]
+  
+  corr_featureMatrix = read.csv(paste(wd, corFeature,sep="/"), stringsAsFactors = FALSE)
+    corr_featureMatrix = corr_featureMatrix[order(corr_featureMatrix$fileName),]
+    
+  if(all(colnames(freqMatrix) == corr_featureMatrix$fileName)){
+    feature_values <- corr_featureMatrix$feature_value
+    
+    for(i in 1:num_clusters) {
+      this_clus = freqMatrix[i,]
+      corr_result = cor.test(feature_values, this_clus, method = corTest)
+      
+      corr_matrix$Correlation[i] = corr_result$estimate
+      corr_matrix$pVal[i] = corr_result$p.value
+    }
+    corr_matrix$pVal <- p.adjust(corr_matrix$pVal, method = "hochberg")
+  
+    colNames = extractColnames(wd)
+    append_corr_signif(wd, corFeature, colNames = colNames, corr_matrix, corPlotTypes, qVal_cutoff)
+  
+    write.csv(corr_matrix, paste(wd,"/",substr(corFeature,1,(nchar(corFeature)-16)),"_correlationSignif.csv", sep=""), row.names = FALSE)
+
+    return(list.files(pattern = "*.clustered.txt$"))
+  } else {
+    return("Error, please include a feature value for each file in your directory")
+  }
+}
+
+
+append_corr_signif = function(wd, corFeature, colNames, corr_matrix, corPlotTypes, qVal_cutoff) {
+  setwd(wd)
+  files = as.matrix(list.files(pattern = "*clustered.txt$"))
+  
+  bind_signif_by_file = function(newFile) {
+    currFile = read.table(newFile, header = TRUE, sep = "\t")
+    colnames(currFile) = as.matrix(colNames)
+    
+    significant_Corrs = corr_matrix$Correlation
+      significant_Corrs[which(corr_matrix$pVal > (qVal_cutoff/100))] = 0
+    
+    appendedFile = cbind(currFile, significant_Corrs)
+      colnames(appendedFile)[ncol(appendedFile)] <- paste(substr(corFeature,1,(nchar(corFeature)-16)),"correlationSIG",sep="_")
+    
+    if(corPlotTypes){
+      appendedFile = cbind(appendedFile, corr_matrix$Correlation)
+        colnames(appendedFile)[ncol(appendedFile)] <- paste(substr(corFeature,1,(nchar(corFeature)-16)),"correlationALL",sep="_")
+    }
+      
+    write.table(appendedFile, file = newFile, row.names = F, sep = "\t", quote = F)
+  }
+  
+  apply(files, 1, bind_signif_by_file)
+}
+
+
+remove_correlation_columns = function(wd) {
+  options(stringsAsFactors = F)
+  
+  setwd(wd)
+  
+  files = list.files(pattern = "*clustered.txt$")
+  for (i in 1:length(files)) {
+    origColNames = as.vector(read.table(files[i], nrows = 1, sep="\t"))
+    signifColumns = c(grep(pattern="correlation", origColNames))
+    
+    if (length(signifColumns) > 0) {
+      newColNames = origColNames[-signifColumns]
+      currFile = read.table(files[i], header=TRUE, sep="\t")
+      newFile = currFile[,-signifColumns]
+      colnames(newFile) = newColNames
+      write.table(newFile, file = files[i], row.names = F, sep = "\t", quote = F)
+    }
+  }
+  return("Expression significance columns removed.")
+}
+

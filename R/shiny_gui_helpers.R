@@ -181,13 +181,7 @@ get_color_for_marker <- function(sc.data, sel.marker, sel.graph, color.scaling)
     ret = rep("#4F93DE", vcount(G))
     ret[V(G)$type == 1] <- "#FF7580"
     v = ret
-    
-    # if(sel.marker == "Default")
-    # {
-    #     ret <- rep("#4F93DE", vcount(G))
-    #     ret[V(G)$type == 1] <- "#FF7580"
-    #     return(ret)
-    # }
+
     if (grepl("Signif", sel.marker) || grepl("FoldChange", sel.marker)) {
       
         v <- get.vertex.attribute(G, sel.marker)
@@ -203,7 +197,25 @@ get_color_for_marker <- function(sc.data, sel.marker, sel.graph, color.scaling)
         ##Landmark nodes black
         v[V(G)$type == 1] <- "#000000"  
         return(v)
-    } 
+    }
+    else if (grepl("correlation", sel.marker)) {
+      v <- get.vertex.attribute(G, sel.marker)
+      
+      #scales data from -1 to 1 TO 0 to 1
+      v <- (v+1)/2
+      
+      a = "#E7E7E7"
+      b = "#1f7f2e"
+      c = "#934e14"
+      f <- colorRamp(c(c, a, b), interpolate = "linear")
+      
+      v <- f(v) #colorRamp needs an argument in the range [0, 1] 
+      v <- apply(v, 1, function(x) {sprintf("rgb(%s)", paste(round(x), collapse = ","))})
+      
+      ##Landmark nodes black
+      v[V(G)$type == 1] <- "#000000"  
+      return(v)
+    }
     else if (sel.marker != "Default")
     {
         norm.factor <- NULL
