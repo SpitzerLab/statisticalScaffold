@@ -197,7 +197,7 @@ render_correlation_ui <- function(working.directory, ...){renderUI({
   fluidPage(
     fluidRow(
       column(6,
-             selectInput("coorelationUI_feature_to_corr", "File containing feature information", choices = c("", list.files(path = working.directory, pattern = "*_Correlation.csv$")), width = "100%"),
+             selectInput("coorelationUI_feature_to_corr", "File containing feature information", choices = c("", list.files(path = working.directory, pattern = "*.csv$")), width = "100%"),
              actionButton("coorelationUI_printTemplate", "Write template file"), br(), br(),
 
              br(),
