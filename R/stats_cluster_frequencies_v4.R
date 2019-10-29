@@ -113,6 +113,16 @@ calculate_FoldChange = function(freqMatrix, group1, group2) {
   
   group1_mean <- rowMeans(freqMatrix[,which(grepl(group1, colnames(freqMatrix)))])
   group2_mean <- rowMeans(freqMatrix[,which(grepl(group2, colnames(freqMatrix)))])
+  if(any(group1_mean == 0)) {
+    index1 <- which(group1_mean == 0)
+    group1_mean[index1] = 1/nrow(freqMatrix)
+    group2_mean[index1] = group2_mean[index1] + 1/nrow(freqMatrix)
+  }
+  if(any(group2_mean == 0)) {
+    index2 <- which(group2_mean == 0)
+    group2_mean[index2] = 1/nrow(freqMatrix)
+    group1_mean[index2] = group1_mean[index2] + 1/nrow(freqMatrix)
+  }
   result_FC <- group2_mean/group1_mean
   result_FC <- round(log2(result_FC), digits = 2)
 
@@ -391,12 +401,12 @@ append_expr_signif = function(wd, colNames, signif_matrix, feature, include_fold
       colnames(appendedFile)[grep("All_Log2_FoldChange", colnames(appendedFile))] = paste(feature, "Boolean_ALLFoldChange", sep="")
         
       #Log2 Normalize SAM output
-      SAM_Index <- which(grepl(paste(feature, "FoldChange", sep=""), colnames(appendedFile)))
+      SAM_Index <- which(grepl(paste(feature, "BooleanFoldChange", sep=""), colnames(appendedFile)))
         appendedFile[,SAM_Index] = log2(as.numeric(appendedFile[,SAM_Index]))
       
       # Normalize Fold Changes
       set_min_Val = -set_max_Val
-      FCs <- c(paste(feature, "FoldChange", sep=""),paste(feature, "Boolean_ALLFoldChange", sep=""))
+      FCs <- c(paste(feature, "BooleanFoldChange", sep=""),paste(feature, "Boolean_ALLFoldChange", sep=""))
       for (i in 1:2){
         FC_dat <- appendedFile[,which(grepl(FCs[i], colnames(appendedFile)))]
         
