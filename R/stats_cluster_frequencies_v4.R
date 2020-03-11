@@ -107,24 +107,17 @@ run_SAM_analysis = function(freqMatrix, sampleID, nperms) {
 }
 
 ##This function manually calculates the fold chnage between groups for plotting
-##regardless of significance cutoff
+##regardless of significance cutoff             FIND ME
 calculate_FoldChange = function(freqMatrix, group1, group2) {
   result_FC <- numeric()
   
   group1_mean <- rowMeans(freqMatrix[,which(grepl(group1, colnames(freqMatrix)))])
   group2_mean <- rowMeans(freqMatrix[,which(grepl(group2, colnames(freqMatrix)))])
-
-  if(any(group1_mean == 0)) {
-    index1 <- which(group1_mean == 0)
-    group1_mean[index1] = 1/nrow(freqMatrix)
-    group2_mean[index1] = group2_mean[index1] + 1/nrow(freqMatrix)
-  }
-  if(any(group2_mean == 0)) {
-    index2 <- which(group2_mean == 0)
-    group2_mean[index2] = 1/nrow(freqMatrix)
-    group1_mean[index2] = group1_mean[index2] + 1/nrow(freqMatrix)
-  }
-
+  # 
+  # for(a in 1:length(group1_mean)){
+  #   if(group1_mean[a]|group2_mean[a] == 0) {group1_mean[a] = group1_mean[a] + 1/200; group2_mean[a] = group2_mean[a] + 1/200}
+  # }
+  
   result_FC <- group2_mean/group1_mean
   result_FC[is.na(result_FC)] <- 1; result_FC[is.infinite(result_FC)] <- 1
   
@@ -404,12 +397,12 @@ append_expr_signif = function(wd, colNames, signif_matrix, feature, include_fold
       colnames(appendedFile)[grep("All_Log2_FoldChange", colnames(appendedFile))] = paste(feature, "Boolean_ALLFoldChange", sep="")
         
       #Log2 Normalize SAM output
-      SAM_Index <- which(grepl(paste(feature, "BooleanFoldChange", sep=""), colnames(appendedFile)))
+      SAM_Index <- which(grepl(paste(feature, "Boolean_FoldChange", sep=""), colnames(appendedFile)))
         appendedFile[,SAM_Index] = log2(as.numeric(appendedFile[,SAM_Index]))
       
       # Normalize Fold Changes
       set_min_Val = -set_max_Val
-      FCs <- c(paste(feature, "BooleanFoldChange", sep=""),paste(feature, "Boolean_ALLFoldChange", sep=""))
+      FCs <- c(paste(feature, "Boolean_FoldChange", sep=""),paste(feature, "Boolean_ALLFoldChange", sep=""))
       for (i in 1:2){
         FC_dat <- appendedFile[,which(grepl(FCs[i], colnames(appendedFile)))]
         
