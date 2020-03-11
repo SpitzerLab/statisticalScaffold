@@ -36,7 +36,7 @@ fluidPage(
             reactiveNetwork(outputId = "graphui_mainnet")
         ),
         column(3,
-               dataTableOutput("graphui_table")
+               DT::dataTableOutput("graphui_table")
         ),
         column(3,
     
@@ -665,7 +665,7 @@ shinyServer(function(input, output, session)
         return(ret)
     })
     
-    output$graphui_table <- renderDataTable({
+    output$graphui_table <- DT::renderDataTable({
         sc.data <- scaffold_data()
         if(!is.null(sc.data) && !is.null(input$graphui_selected_graph) && input$graphui_selected_graph != "")
         {

@@ -69,9 +69,9 @@ get_summary_table <- function(sc.data, sel.graph, sel.nodes)
 
 cleanPlotMarkers <- function(allMarkers,forMap = FALSE) {
   remove = c("cellType","Event_length","length","Y89Di","Ba138Di","Ba138","Time","DNA","DNA.1","DNA1","DNA2", "Cisplatin","e131Di","e131","Os189",
-             "BC1","BC2","BC3","BC4","BC5","BC6","beadDist","sample","popsize","Xe131Di")
-  cleanMarkers = allMarkers[-which(allMarkers %in% remove)]
-    cleanMarkers = as.character(cleanMarkers)
+             "BC1","BC2","BC3","BC4","BC5","BC6","beadDist","sample","popsize","Xe131Di","Signif","FoldChange")
+  cleanMarkers = allMarkers[-which(grepl(paste(remove, collapse = "|"), allMarkers))]
+  cleanMarkers = as.character(cleanMarkers)
   if(forMap == FALSE) {
     if(any(grep("Signif", cleanMarkers))) {cleanMarkers =  cleanMarkers[-grep("Signif", cleanMarkers)]}
     if(any(grep("FoldChange", cleanMarkers))) {cleanMarkers =  cleanMarkers[-grep("FoldChange", cleanMarkers)]}
@@ -170,7 +170,6 @@ get_graph <- function(sc.data, sel.graph, trans_to_apply, min.node.size, max.nod
     #print(G)
     ret <- list(names = V(G)$Label, size = vertex.size / trans$scaling, type = V(G)$type, highest_scoring_edge = V(G)$highest_scoring_edge, X = x, Y = y, trans_to_apply = trans_to_apply)
     ret <- c(ret, edges = list(edges))
-    
     return(ret)
 }
 
@@ -238,6 +237,7 @@ get_color_for_marker <- function(sc.data, sel.marker, sel.graph, color.scaling)
       return(ret)
     }
 }
+
 
 get_numeric_vertex_attributes <- function(sc.data, sel.graph)
 {

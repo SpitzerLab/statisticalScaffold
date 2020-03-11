@@ -12,6 +12,7 @@
 #' @import scales
 #' @import igraph
 #' @import samr
+#' @import DT
 #' @importFrom Rcpp sourceCpp
 #' @useDynLib scaffold 
 NULL
