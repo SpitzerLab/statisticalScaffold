@@ -61,19 +61,19 @@ fluidPage(
             actionButton("graphui_plot_clusters", "Plot selected clusters"), checkboxInput("graphui_pool_cluster_data", "Pool cluster data", value = FALSE), br(),
             selectInput("graphui_plot_type", "Plot type:", choices = c("Density", "Boxplot", "Scatterplot"), width = "100%"),
             selectInput("graphui_markers_to_plot", "Markers to plot in cluster view:", choices = c(""), multiple = T, width = "100%"),
-            ##Added these new buttons / inputs to run Histogram intersection distance
-            textInput("graphui_HID_Directory", "Histogram Distance Subdirectory", "Histogram Intersection", width = "100%"),
-            actionButton("graphui_HID_Vector1", "Set Group 1 Clusters"), br(),
-            actionButton("graphui_HID_Vector2", "Set Group 2 Clusters"), br(),
-            actionButton("graphui_HID_Run", "Run Histogram Distance"), br(),
-            checkboxInput("graphui_HID_SAM", "Include Statistics", value = TRUE),
+            # ##Added these new buttons / inputs to run Histogram intersection distance
+            # textInput("graphui_HID_Directory", "Histogram Distance Subdirectory", "Histogram Intersection", width = "100%"),
+            # actionButton("graphui_HID_Vector1", "Set Group 1 Clusters"), br(),
+            # actionButton("graphui_HID_Vector2", "Set Group 2 Clusters"), br(),
+            # actionButton("graphui_HID_Run", "Run Histogram Distance"), br(),
+            # checkboxInput("graphui_HID_SAM", "Include Statistics", value = TRUE),
             verbatimTextOutput("graphui_dialog1")
         )
     ),
     fluidRow(
         column(12,
             plotOutput("graphui_plot"),
-            plotOutput("graphui_plot_HID")
+            #plotOutput("graphui_plot_HID")
         )
     )
 )
@@ -705,29 +705,29 @@ shinyServer(function(input, output, session)
     #})
     
     
-    ##HID
-    #Set vectors
-    observe({
-      if(!is.null(input$graphui_HID_Vector1) && input$graphui_HID_Vector1 > 0)
-      {
-        isolate({
-          if(!is.null(input$graphui_selected_nodes) && length(input$graphui_selected_nodes) >= 1)
-            scaffold:::set_HID_vectors(vector = "vector1", sel.nodes = input$graphui_selected_nodes,
-                                       working.directory, nameDirectory = input$graphui_HID_Directory)
-        })
-      }
-    })
-    
-    observe({
-      if(!is.null(input$graphui_HID_Vector2) && input$graphui_HID_Vector2 > 0)
-      {
-        isolate({
-          if(!is.null(input$graphui_selected_nodes) && length(input$graphui_selected_nodes) >= 1)
-            scaffold:::set_HID_vectors(vector = "vector2", sel.nodes = input$graphui_selected_nodes,
-                                       working.directory, nameDirectory = input$graphui_HID_Directory)
-        })
-      }
-    })
+    # ##HID
+    # #Set vectors
+    # observe({
+    #   if(!is.null(input$graphui_HID_Vector1) && input$graphui_HID_Vector1 > 0)
+    #   {
+    #     isolate({
+    #       if(!is.null(input$graphui_selected_nodes) && length(input$graphui_selected_nodes) >= 1)
+    #         scaffold:::set_HID_vectors(vector = "vector1", sel.nodes = input$graphui_selected_nodes,
+    #                                    working.directory, nameDirectory = input$graphui_HID_Directory)
+    #     })
+    #   }
+    # })
+    # 
+    # observe({
+    #   if(!is.null(input$graphui_HID_Vector2) && input$graphui_HID_Vector2 > 0)
+    #   {
+    #     isolate({
+    #       if(!is.null(input$graphui_selected_nodes) && length(input$graphui_selected_nodes) >= 1)
+    #         scaffold:::set_HID_vectors(vector = "vector2", sel.nodes = input$graphui_selected_nodes,
+    #                                    working.directory, nameDirectory = input$graphui_HID_Directory)
+    #     })
+    #   }
+    # })
     
 
     output$graphui_plot = renderPlot({
@@ -745,20 +745,20 @@ shinyServer(function(input, output, session)
         print(p)
     })
     
-    output$graphui_plot_HID = renderPlot({
-        p <- NULL
-        if (!is.null(input$graphui_HID_Run) && input$graphui_HID_Run != 0)
-        {
-          isolate({
-            col.names <- input$graphui_markers_to_plot
-            if(length(col.names) >= 1 && input$graphui_HID_Vector1 > 0 && input$graphui_HID_Vector2 > 0)
-              p <- scaffold:::generateHistIntersect(nameDirectory = input$graphui_HID_Directory,
-                                                  working.directory, stat = input$graphui_HID_SAM,
-                                                  proteins = input$graphui_markers_to_plot)
-          })
-        }
-        print(p)
-    })
+    # output$graphui_plot_HID = renderPlot({
+    #     p <- NULL
+    #     if (!is.null(input$graphui_HID_Run) && input$graphui_HID_Run != 0)
+    #     {
+    #       isolate({
+    #         col.names <- input$graphui_markers_to_plot
+    #         if(length(col.names) >= 1 && input$graphui_HID_Vector1 > 0 && input$graphui_HID_Vector2 > 0)
+    #           p <- scaffold:::generateHistIntersect(nameDirectory = input$graphui_HID_Directory,
+    #                                               working.directory, stat = input$graphui_HID_SAM,
+    #                                               proteins = input$graphui_markers_to_plot)
+    #       })
+    #     }
+    #     print(p)
+    # })
 
 
     #output$graphui_plot_title = renderPrint({

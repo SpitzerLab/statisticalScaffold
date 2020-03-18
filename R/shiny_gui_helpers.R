@@ -68,10 +68,7 @@ get_summary_table <- function(sc.data, sel.graph, sel.nodes)
 
 
 cleanPlotMarkers <- function(allMarkers,forMap = FALSE) {
-  remove = c("cellType","Event_length","length","Y89Di","Ba138Di","Ba138","Time","DNA","DNA.1","DNA1","DNA2", "Cisplatin","e131Di","e131","Os189",
-             "BC1","BC2","BC3","BC4","BC5","BC6","beadDist","sample","popsize","Xe131Di","Signif","FoldChange")
-  cleanMarkers = allMarkers[-which(grepl(paste(remove, collapse = "|"), allMarkers))]
-  cleanMarkers = as.character(cleanMarkers)
+    cleanMarkers = as.character(cleanMarkers)
   if(forMap == FALSE) {
     if(any(grep("Signif", cleanMarkers))) {cleanMarkers =  cleanMarkers[-grep("Signif", cleanMarkers)]}
     if(any(grep("FoldChange", cleanMarkers))) {cleanMarkers =  cleanMarkers[-grep("FoldChange", cleanMarkers)]}
@@ -117,24 +114,24 @@ export_clusters_all_files <- function(working.dir, sel.graph, sel.nodes)
     apply(filesToIterate, 1, exportFromFile)
 }
 
-##Added this function to run set cluster vectors for Histogram Intersection Distance
-set_HID_vectors <- function(vector, sel.nodes, working.directory, nameDirectory)
-{
-  if(!(nameDirectory %in% list.dirs(full.names = FALSE))) {dir.create(paste(working.directory,nameDirectory, sep = "/"))}
-  
-  if (all(substr(sel.nodes,1,1) == "c")) {
-  sel.nodes = as.numeric(gsub("c", "", sel.nodes))
-  }
-  if(vector == "vector1") {
-    setVector1 = sel.nodes
-    write.csv(setVector1, file = paste(working.directory,nameDirectory, "Vector1.csv", sep="/"),
-              row.names=FALSE)
-  }else if (vector == "vector2") {
-    setVector2 = sel.nodes
-    write.csv(setVector2, file = paste(working.directory,nameDirectory, "Vector2.csv", sep="/"),
-              row.names=FALSE)
-  }
-}
+# ##Added this function to run set cluster vectors for Histogram Intersection Distance
+# set_HID_vectors <- function(vector, sel.nodes, working.directory, nameDirectory)
+# {
+#   if(!(nameDirectory %in% list.dirs(full.names = FALSE))) {dir.create(paste(working.directory,nameDirectory, sep = "/"))}
+#   
+#   if (all(substr(sel.nodes,1,1) == "c")) {
+#   sel.nodes = as.numeric(gsub("c", "", sel.nodes))
+#   }
+#   if(vector == "vector1") {
+#     setVector1 = sel.nodes
+#     write.csv(setVector1, file = paste(working.directory,nameDirectory, "Vector1.csv", sep="/"),
+#               row.names=FALSE)
+#   }else if (vector == "vector2") {
+#     setVector2 = sel.nodes
+#     write.csv(setVector2, file = paste(working.directory,nameDirectory, "Vector2.csv", sep="/"),
+#               row.names=FALSE)
+#   }
+# }
 
 get_graph <- function(sc.data, sel.graph, trans_to_apply, min.node.size, max.node.size, landmark.node.size)
 {
@@ -170,6 +167,7 @@ get_graph <- function(sc.data, sel.graph, trans_to_apply, min.node.size, max.nod
     #print(G)
     ret <- list(names = V(G)$Label, size = vertex.size / trans$scaling, type = V(G)$type, highest_scoring_edge = V(G)$highest_scoring_edge, X = x, Y = y, trans_to_apply = trans_to_apply)
     ret <- c(ret, edges = list(edges))
+    
     return(ret)
 }
 
@@ -237,7 +235,6 @@ get_color_for_marker <- function(sc.data, sel.marker, sel.graph, color.scaling)
       return(ret)
     }
 }
-
 
 get_numeric_vertex_attributes <- function(sc.data, sel.graph)
 {
