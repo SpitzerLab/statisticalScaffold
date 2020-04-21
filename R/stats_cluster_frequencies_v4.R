@@ -212,6 +212,7 @@ getSignifMatrix = function(model, num_clusters, qValue_cutoff, include_foldC) {
 
 ##This function appends the q-value matrix to each "clustered.txt" file in the wd.
 append_freq_signif = function(wd, colNames, signif_matrix, include_foldC = FALSE, set_max_Val = 2) {
+  remove_freqsignif_columns(wd)
   setwd(wd)
   files = as.matrix(list.files(pattern = "*clustered.txt$"))
   
@@ -262,7 +263,7 @@ analyze_cluster_frequencies = function(wd, group1, group2, qValue_cutoff, nperms
   if (total_cells_in_file == TRUE) {
     totalCellNumbers = "NA"
   } else {
-    totalCellNumbers = getTotalCellNumbers(file = paste(wd, total_cell_numbers_csv, sep = "/"), wd = wd)
+    totalCellNumbers = getTotalCellNumbers(file = total_cell_numbers_csv, wd = wd)
   }
   
   freqMatrix = getFrequencies(wd = wd, totalCellNumbers = totalCellNumbers)
@@ -515,7 +516,7 @@ analyze_cluster_correlation = function(wd, corFeature, corTest, corPlotTypes, qV
   
     colNames = extractColnames(wd)
     
-        corfeatureName <- as.character(corFeature); corfeatureName <- substr(".csv","",corfeatureName)
+        corfeatureName <- as.character(corFeature); corfeatureName <- gsub(".csv","",corfeatureName)
 
     append_corr_signif(wd, corfeatureName, colNames = colNames, corr_matrix, corPlotTypes, qVal_cutoff)
   

@@ -68,10 +68,11 @@ get_summary_table <- function(sc.data, sel.graph, sel.nodes)
 
 
 cleanPlotMarkers <- function(allMarkers,forMap = FALSE) {
-    cleanMarkers = as.character(cleanMarkers)
+  cleanMarkers = as.character(allMarkers)
   if(forMap == FALSE) {
     if(any(grep("Signif", cleanMarkers))) {cleanMarkers =  cleanMarkers[-grep("Signif", cleanMarkers)]}
     if(any(grep("FoldChange", cleanMarkers))) {cleanMarkers =  cleanMarkers[-grep("FoldChange", cleanMarkers)]}
+    if(any(grep("correlation", cleanMarkers))) {cleanMarkers =  cleanMarkers[-grep("correlation", cleanMarkers)]}
   }
   return(cleanMarkers)
 }
