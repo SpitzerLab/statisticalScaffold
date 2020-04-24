@@ -113,6 +113,7 @@ calculate_FoldChange = function(freqMatrix, group1, group2) {
   
   group1_mean <- rowMeans(freqMatrix[,which(grepl(group1, colnames(freqMatrix)))])
   group2_mean <- rowMeans(freqMatrix[,which(grepl(group2, colnames(freqMatrix)))])
+
   
   if(any(group1_mean == 0)) {
     index1 <- which(group1_mean == 0)
@@ -124,11 +125,13 @@ calculate_FoldChange = function(freqMatrix, group1, group2) {
     group2_mean[index2] = 1/nrow(freqMatrix)
     group1_mean[index2] = group1_mean[index2] + 1/nrow(freqMatrix)
   }
+
   
   result_FC <- group2_mean/group1_mean
   result_FC[is.na(result_FC)] <- 1; result_FC[is.infinite(result_FC)] <- 1
   
   result_FC <- round(log2(result_FC), digits = 3)
+
   
   return(result_FC)
 }
@@ -206,6 +209,7 @@ getSignifMatrix = function(model, num_clusters, qValue_cutoff, include_foldC) {
     cluster_signif[,3] = apply(clusters, 1, getClusterFoldChange)
     if(any(is.infinite(cluster_signif[,3]))) {cluster_signif[which(is.infinite(cluster_signif[,3])),3] = 1}
   } else {cluster_signif = cluster_signif[,-3]}
+
   
   return(cluster_signif)
 }
@@ -230,20 +234,22 @@ append_freq_signif = function(wd, colNames, signif_matrix, include_foldC = FALSE
       appendedFile$frequencyFoldChange = log2(as.numeric(appendedFile$frequencyFoldChange))
       
       # Normalize Fold Changes
-      set_min_Val = -set_max_Val
-      FCs <- c("frequencyFoldChange","frequency_ALLFoldChange")
-      for (i in 1:2){
-        FC_dat <- appendedFile[,which(grepl(FCs[i], colnames(appendedFile)))]
+      
+        set_min_Val = -set_max_Val
+        FCs <- c("frequencyFoldChange","frequency_ALLFoldChange")
+        for (i in 1:2){
+          FC_dat <- appendedFile[,which(grepl(FCs[i], colnames(appendedFile)))]
+          
+          if(any(FC_dat > set_max_Val)) {FC_dat[which(FC_dat > set_max_Val)] = set_max_Val}
+          if(any(FC_dat < set_min_Val)) {FC_dat[which(FC_dat < set_min_Val)] = set_min_Val}
+          normalized = (FC_dat-set_min_Val)/(set_max_Val-set_min_Val)
         
-        if(any(FC_dat > set_max_Val)) {FC_dat[which(FC_dat > set_max_Val)] = set_max_Val}
-        if(any(FC_dat < set_min_Val)) {FC_dat[which(FC_dat < set_min_Val)] = set_min_Val}
-        normalized = (FC_dat-set_min_Val)/(set_max_Val-set_min_Val)
+          if(any(normalized>1)) {normalized[which(normalized>1)] = 0.99999} ##represents greatest increase, 1 used for black landmarks
+          if(any(normalized==1)) {normalized[which(normalized==1)] = 0.99999}
         
-        if(any(normalized>1)) {normalized[which(normalized>1)] = 0.99999} ##represents greatest increase, 1 used for black landmarks
-        if(any(normalized==1)) {normalized[which(normalized==1)] = 0.99999}
-        
-        appendedFile[,which(grepl(FCs[i], colnames(appendedFile)))] = normalized
-      }
+          appendedFile[,which(grepl(FCs[i], colnames(appendedFile)))] = normalized
+        }
+
     } else{
       appendedFile = cbind(currFile, signif_matrix[,grep("Significance", colnames(signif_matrix))])
       colnames(appendedFile)[ncol(appendedFile)] = "frequencySignif"
@@ -275,10 +281,12 @@ analyze_cluster_frequencies = function(wd, group1, group2, qValue_cutoff, nperms
   getFC <- calculate_FoldChange(freqMatrix, group1, group2)
   
   signif_matrix = getSignifMatrix(model, num_clusters = length(freqMatrix[,1]), qValue_cutoff = qValue_cutoff, include_foldC)
-  colNames = extractColnames(wd)
+
+    colNames = extractColnames(wd)
   
   signif_matrix <- as.data.frame(cbind(signif_matrix,as.numeric(getFC)))
-  colnames(signif_matrix)[ncol(signif_matrix)] = "All_Log2_FoldChange"
+    colnames(signif_matrix)[ncol(signif_matrix)] = "All_Log2_FoldChange"
+
   append_freq_signif(wd, colNames = colNames, signif_matrix = signif_matrix, include_foldC = include_foldC, set_max_Val = set_max_Val)
   
   write.csv(signif_matrix, paste(wd, "freqSignif.csv", sep="/"), row.names = FALSE)
@@ -306,6 +314,7 @@ remove_freqsignif_columns = function(wd) {
     }
   } 
   return("Frequency significance columns removed.")
+
 }
 
 
@@ -315,6 +324,7 @@ print_Feature_Template = function(wd){
   temp_mat = data.frame(fileName = files, feature_value = rep(NA, length = length(files)))
   write.csv(temp_mat, paste(wd,"Feature_Template.csv", sep="/"), row.names = FALSE)
 }
+
 
 
 
@@ -330,6 +340,7 @@ get_rdata_col_names <- function(working.directory, f.name)
   rdata.file <- readRDS(paste(working.directory, f.name, sep = "/"))
   
   ret <- as.vector(colnames(rdata.file))
+
   
   if(any(is.na(ret)))
   {
@@ -403,10 +414,12 @@ append_expr_signif = function(wd, colNames, signif_matrix, feature, include_fold
       colnames(appendedFile)[grep("Significance", colnames(appendedFile))] = paste(feature, "BooleanSignif", sep="")
       colnames(appendedFile)[grep("SAMFoldChange", colnames(appendedFile))] = paste(feature, "BooleanFoldChange", sep="")
       colnames(appendedFile)[grep("All_Log2_FoldChange", colnames(appendedFile))] = paste(feature, "Boolean_ALLFoldChange", sep="")
-      
+
+        
       #Log2 Normalize SAM output
       SAM_Index <- which(grepl(paste(feature, "BooleanFoldChange", sep=""), colnames(appendedFile)))
-      appendedFile[,SAM_Index] = log2(as.numeric(appendedFile[,SAM_Index]))
+        appendedFile[,SAM_Index] = log2(as.numeric(appendedFile[,SAM_Index]))
+
       
       # Normalize Fold Changes
       set_min_Val = -set_max_Val
@@ -450,8 +463,8 @@ analyze_cluster_expression = function(wd, group1, group2, qValue_cutoff, nperms,
   getFC_express <- calculate_FoldChange(booleanMatrix, group1, group2)
   
   signif_matrix = getSignifMatrix(model, num_clusters = num_clusters, qValue_cutoff = qValue_cutoff, include_foldC)
-  signif_matrix = cbind(signif_matrix, getFC_express)
-  colnames(signif_matrix)[ncol(signif_matrix)] = "All_Log2_FoldChange"
+    signif_matrix = cbind(signif_matrix, getFC_express)
+    colnames(signif_matrix)[ncol(signif_matrix)] = "All_Log2_FoldChange"
   
   write.csv(signif_matrix, paste(wd, paste(feature, "BooleanSignif.csv", sep=""), sep="/"), row.names = FALSE)
   colNames = extractColnames(wd)
@@ -459,6 +472,7 @@ analyze_cluster_expression = function(wd, group1, group2, qValue_cutoff, nperms,
                      include_foldC = include_foldC, set_max_Val = set_max_Val)
   return(list.files(pattern = "*.clustered.txt$"))
 }
+
 
 
 remove_exprsignif_columns = function(wd) {
@@ -493,11 +507,14 @@ analyze_cluster_correlation = function(wd, corFeature, corTest, corPlotTypes, qV
   corr_matrix = data.frame(cellType = 1:num_clusters, Correlation = rep(NA, length = num_clusters), pVal = rep(NA, length = num_clusters))
   
   freqMatrix = getFrequencies(wd = wd, totalCellNumbers = "NA")
-  freqMatrix = freqMatrix[,order(colnames(freqMatrix))]
+
+
+    freqMatrix = freqMatrix[,order(colnames(freqMatrix))]
   
   corr_featureMatrix = read.csv(paste(wd, corFeature,sep="/"), stringsAsFactors = FALSE)
-  corr_featureMatrix = corr_featureMatrix[order(corr_featureMatrix$fileName),]
-  
+    corr_featureMatrix = corr_featureMatrix[order(corr_featureMatrix$fileName),]
+    
+
   if(all(colnames(freqMatrix) == corr_featureMatrix$fileName)){
     feature_values <- corr_featureMatrix$feature_value
     
@@ -513,6 +530,7 @@ analyze_cluster_correlation = function(wd, corFeature, corTest, corPlotTypes, qV
       }
     }
     corr_matrix$pVal <- p.adjust(corr_matrix$pVal, method = "hochberg")
+
     
     colNames = extractColnames(wd)
     
@@ -522,6 +540,7 @@ analyze_cluster_correlation = function(wd, corFeature, corTest, corPlotTypes, qV
     
     write.csv(corr_matrix, paste(wd,"/",corfeatureName,"_correlationSignif.csv", sep=""), row.names = FALSE)
     
+
     return(list.files(pattern = "*.clustered.txt$"))
   } else {
     return("Error, please include a feature value for each file in your directory")
@@ -538,16 +557,18 @@ append_corr_signif = function(wd, corfeatureName, colNames, corr_matrix, corPlot
     colnames(currFile) = as.matrix(colNames)
     
     significant_Corrs = corr_matrix$Correlation
-    significant_Corrs[which(corr_matrix$pVal > (qVal_cutoff/100))] = 0
+
+      significant_Corrs[which(corr_matrix$pVal > (qVal_cutoff/100))] = 0
     
     appendedFile = cbind(currFile, significant_Corrs)
-    colnames(appendedFile)[ncol(appendedFile)] <- paste(corfeatureName,"correlationSIG",sep="_")
+      colnames(appendedFile)[ncol(appendedFile)] <- paste(corfeatureName,"correlationSIG",sep="_")
     
     if(corPlotTypes){
       appendedFile = cbind(appendedFile, corr_matrix$Correlation)
-      colnames(appendedFile)[ncol(appendedFile)] <- paste(corfeatureName,"correlationALL",sep="_")
+        colnames(appendedFile)[ncol(appendedFile)] <- paste(corfeatureName,"correlationALL",sep="_")
     }
-    
+      
+
     write.table(appendedFile, file = newFile, row.names = F, sep = "\t", quote = F)
   }
   

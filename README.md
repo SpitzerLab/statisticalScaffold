@@ -42,14 +42,14 @@ BiocManager::install("flowCore")
 
 ## Install SCAFFoLD
 
-Once you have succesfully completed the steps above, start an R session and type the following commands
+Once you have successfully completed the steps above, start an R session and type the following commands
 
 ```
 library(devtools)
 install_github("SpitzerLab/statisticalScaffold")
 ```
 
-This will install the SCAFFoLD R package together with all the required dependencies. If evertyhing was successful you should be able to start SCAFFoLD by typing the following commands
+This will install the SCAFFoLD R package together with all the required dependencies. If everything was successful you should be able to start SCAFFoLD by typing the following commands
 
 ```
 library(scaffold)
@@ -72,13 +72,17 @@ The clustering is the only computationally intensive part of a SCAFFoLD analysis
 
 ## Add Statistical Analyses
 
-There are currently two options for running statistical analyses in Scaffold, and both require that your samples were clustered together in the clustering step above. 
+There are currently three options for running statistical analyses in Scaffold, and both require that your samples were clustered together in the clustering step above. 
 
-The first is to compare cluster frequencies across your samples, to determine whether there are cell subsets that are significantly increased or decreased in one sample compared to another sample. Navigate to the "Add frequency statistics" tab. If you want to comput cell frequencies as a percent of the total cells in your FCS file, leave the box checked to "Calculate frequencies as a percent ot total cells in file." If you would like to calculate frequencies as a percent of some other population, such as total live cells, you must create a .csv file where the first column contains all of the FCS file names in your experiment and the 2nd column contains the total cell counts for each file, and this .csv file must be located in the same directory as your FCS files. In the dropdown menu called "File containing total cell numbers", select this .csv file. The "Identifier" text boxes should contain a unique string that distinguishes the samples that belong to class 1 and the samples that belonw to class 2. The q-value cutoff determines the threshold for significance, with 5% as the default. The number of permutations determines how many iterations SAM runs in determining significant features. 
+The first is to compare cluster frequencies across your samples, to determine whether there are cell subsets that are significantly increased or decreased in one sample compared to another sample. Navigate to the "Add frequency statistics" tab. If you want to comput cell frequencies as a percent of the total cells in your FCS file, leave the box checked to "Calculate frequencies as a percent of total cells in file." If you would like to calculate frequencies as a percent of some other population, such as total live cells, you must create a .csv file where the first column contains all of the FCS file names in your experiment and the 2nd column contains the total cell counts for each file, and this .csv file must be located in the same directory as your FCS files. In the dropdown menu called "File containing total cell numbers", select this .csv file. The "Identifier" text boxes should contain a unique string that distinguishes the samples that belong to class 1 and the samples that below to class 2. The q-value cutoff determines the threshold for significance, with 5% as the default. The number of permutations determines how many iterations SAM runs in determining significant features. 
 
-At the end of the analysis, two new files will be written into your working directory: one contains the cell frequencies for each cluster for each sample, the other contains a list of clusters and the significance value. A high significance value (close to 1) means that the cluster is more prevalent in sample class 2, and the number is (100 - q-value). A low significance value (close to 0) means that the cluster is less prevalent in sample class 2, and the number is equal to the q-value. A value of 0.5 means the cluster did not meet the signifiance therehold. This column in written into the clustered.txt files with the title "FreqSignif" such that the resulting Scaffold map can be colored by significance.
+At the end of the analysis, two new files will be written into your working directory: one contains the cell frequencies for each cluster for each sample, the other contains a list of clusters and the significance value. A high significance value (close to 1) means that the cluster is more prevalent in sample class 2, and the number is (100 - q-value). A low significance value (close to 0) means that the cluster is less prevalent in sample class 2, and the number is equal to the q-value. A value of 0.5 means the cluster did not meet the significance threshold. This column in written into the clustered.txt files with the title "FreqSignif" such that the resulting Scaffold map can be colored by significance.
 
-The second option is to compare boolean protein expression for any given molecule between two sample types. Navigate to the "Add expression statistics" tab. Choose any sample to bring up a list of the markers that were measured in your experiment, and then select the marker you wish to comapre across your sample groups. Input the desried boolean threshold value that distinguished "positive" cells from "negative" cells as well as the asinh cofactor that you chose when running the clustering (this is generally 5 for CyTOF data). As for the frequency analysis, the "Identifier" text boxes should contain a unique string that distinguishes the samples that belong to class 1 and the samples that belonw to class 2. The q-value cutoff determines the threshold for significance, with 5% as the default. The number of permutations determines how many iterations SAM runs in determining significant features. The same .csv files are written as for the frequency analysis, but now they will be called *Marker*BooleanFreq and *Marker*BooleanSignif.
+The second option is to compare boolean protein expression for any given molecule between two sample types. Navigate to the "Add expression statistics" tab. Choose any sample to bring up a list of the markers that were measured in your experiment, and then select the marker you wish to compare across your sample groups. Input the desired boolean threshold value that distinguished "positive" cells from "negative" cells as well as the asinh cofactor that you chose when running the clustering (this is generally 5 for CyTOF data). As for the frequency analysis, the "Identifier" text boxes should contain a unique string that distinguishes the samples that belong to class 1 and the samples that below to class 2. The q-value cutoff determines the threshold for significance, with 5% as the default. The number of permutations determines how many iterations SAM runs in determining significant features. The same .csv files are written as for the frequency analysis, but now they will be called *Marker*BooleanFreq and *Marker*BooleanSignif.
+
+Both cluster frequencies and boolean protein expression have been expanded to compute the log2 transformed fold change between groups. Check the 'Include Fold Change' box To enable this feature, Also set the scaling for graphical representation (ie. 2 = a two-fold change on the log2 scale).
+
+The third option is to correlate cluster frequencies with an external experimental feature (eg. tumor size or time point). You must create a .csv file where the first column contains all of the FCS file names in your experiment and the 2nd column contains the feature. Write Template File will export an temporary .csv file pre-filled with the FCS file names in that directory; simply edit the second column. You can choose the type of correlation to be performed (Spearman, Pearson or Kendell) and the q-value cutoff. All q-values are corrected using Benjamini-Hochberg correction. To include graphical illustration of non-significant values, check the 'Include plot without statistics' box.
 
 ## Construct a SCAFFoLD map
 
@@ -94,7 +98,7 @@ After you have specified all the parameters you can click on the "Start analysis
 
 ## Explore a SCAFFoLD map
 
-Switch to the "Map exploration" tab by using the top navigation bar. This is a rundown of what the operation of the differnent controls:
+Switch to the "Map exploration" tab by using the top navigation bar. This is a rundown of what the operation of the different controls:
 
 1. **Choose a dataset**: use this drop-down to select a .scaffold file located in your current working directory
 2. **Choose a graph**: the result of a single SCAFFoLD analysis typically contain multiple maps, one for each input dataset. This dropdown allows you to select the map you want to visualize.
@@ -105,7 +109,10 @@ Switch to the "Map exploration" tab by using the top navigation bar. This is a r
 7. **Reset graph**: this button will reset the graph to its initial position, which is intended to display most of the nodes in a single image
 8. **Toggle landmark labels**: toggle the display of the landmark labels on/off
 9. **Toggle cluster labels**: toggle the display of the cluster labels on/off
-10. **Markers to plot in cluster view**: one of the most useful ways to inspect a cluster is to plot the distribution of expression values for the cells that comprise the cluster as compared to the cells that define the landmark nodes the cluster is connected to. This can help you understand what is similar and what is different between a cluster and a landmark population. Using this box you can select the markers you want to inspect. To generate the actual plot simply click on a cluster node. A plot of the markers distributions will then appear in the lower half of the window. The figure will contains multiple subplots, one for each marker. Each subplot consists of a distribution of expression values for the cells in the cluster and the cells in all the landmark nodes the cluster is connected to. The different distribution can be distinguished by line color, with a legend to the right of each plot.
+10. **Export cluster info**: Export a .csv file labeling each cluster by the highest ranking landmark node.
+11. **Export selected clusters**: Export the selected clusters from current sample into an .FCS file. Note the exported data will be arcsinh transformed.
+12. **Export selected clusters from all files**: Export the selected clusters from all samples into .FCS files.
+13. **Markers to plot in cluster view**: one of the most useful ways to inspect a cluster is to plot the distribution of expression values for the cells that comprise the cluster as compared to the cells that define the landmark nodes the cluster is connected to. This can help you understand what is similar and what is different between a cluster and a landmark population. Using this box you can select the markers you want to inspect. To generate the actual plot simply click on a cluster node. A plot of the markers distributions will then appear in the lower half of the window. The figure will contains multiple subplots, one for each marker. Each subplot consists of a distribution of expression values for the cells in the cluster and the cells in all the landmark nodes the cluster is connected to. The different distribution can be distinguished by line color, with a legend to the right of each plot.
 
 
 

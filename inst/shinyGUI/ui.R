@@ -6,6 +6,7 @@ shinyUI(
             tabPanel("Run clustering", uiOutput("clusteringUI")),
             tabPanel("Add frequency statistics", uiOutput("freqstatsUI")),
             tabPanel("Add expression statistics", uiOutput("exprstatsUI")),
+            tabPanel("Add correlation statistics", uiOutput("coorelationUI")),
             tabPanel("Map dataset", uiOutput("mappingUI"))
     )
 )
