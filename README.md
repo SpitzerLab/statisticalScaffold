@@ -34,9 +34,10 @@ Open an R session, type the following command and select a CRAN mirror when prom
 Open an R session and type the following commands
 
 ```
-source("http://bioconductor.org/biocLite.R")
-biocLite("flowCore")
-BiocManager::install("impute")
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("flowCore")
 ```
 
 ## Install SCAFFoLD
